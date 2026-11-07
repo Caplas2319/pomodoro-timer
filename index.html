@@ -189,7 +189,7 @@ details[open]>summary{margin-bottom:8px}
 /* ========== 常量与工具 ========== */
 const P = 'focus_';
 const K = { records: P + 'records', running: P + 'running', settings: P + 'settings' };
-const SHARED = { token: 'shared_gh_token', repo: 'shared_gh_repo' }; // 与任务清单页共用
+const SHARED = { token: 'gh_token', repo: 'gh_repo' }; // 与任务清单页共用
 const GH_PATH = 'data.json';
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2, '0');
@@ -748,6 +748,13 @@ window.addEventListener('storage', e => {     // 同一浏览器的另一个标�
 
 /* ========== 启动 ========== */
 (async function init() {
+  // 迁移：早先版本用过 shared_gh_* 键名
+  try {
+    for (const [o, n] of [['shared_gh_token', SHARED.token], ['shared_gh_repo', SHARED.repo]]) {
+      const v = localStorage.getItem(o);
+      if (v != null) { if (!localStorage.getItem(n)) localStorage.setItem(n, v); localStorage.removeItem(o); }
+    }
+  } catch {}
   advance(Date.now());                 // 恢复进行中的计时（含页面关闭期间已到时的补记）
   if (running) { startTicker(); acquireWake(); }
   render();
