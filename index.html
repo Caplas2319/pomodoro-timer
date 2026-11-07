@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>专注</title>
+<style>
+:root{
+  --bg:#f6f7f8; --fg:#1d2125; --mute:#69727c; --line:#dde1e5;
+  --accent:#2f6f5e; --accent-fg:#fff; --bar:#c9d9d3; --danger:#b3382c;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#14171a; --fg:#e4e7ea; --mute:#8a949e; --line:#272c31;
+    --accent:#6db39e; --accent-fg:#0d1512; --bar:#2b4a40; --danger:#e07a6e;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--fg); min-height:100vh;
+  font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
+header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
+header{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-bottom:1px solid var(--line)}
+nav{display:flex;gap:4px}
+.tab{border:0;background:none;color:var(--mute);font:inherit;padding:10px 12px;min-height:48px;border-bottom:2px solid transparent;cursor:pointer}
+.tab[aria-current=page]{color:var(--fg);border-bottom-color:var(--accent)}
+header a{color:var(--mute);text-decoration:none;padding:10px 4px;font-size:15px}
+main{padding-top:8px;padding-bottom:96px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{border:1px solid var(--line);background:none;border-radius:10px;padding:10px 18px;min-height:48px}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.small{min-height:40px;padding:6px 14px;font-size:15px}
+input[type=text],input[type=password],input[type=number],input[type=time]{
+  background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:44px;
+}
+input:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--mute);padding:8px 16px;min-height:44px}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+
+#clock{
+  font-size:clamp(64px,20vw,128px);font-weight:300;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;text-align:center;line-height:1.1;margin:10vh 0 6px;
+}
+#clock.ring{animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){#clock.ring{animation:none;color:var(--accent)}}
+#meta,#note{text-align:center;color:var(--mute);font-size:15px;min-height:1.5em;margin:0}
+#config{display:flex;flex-direction:column;align-items:center;gap:14px;margin:28px 0 8px}
+.line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+#minutes{width:6em;text-align:center}
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:24px 0 12px}
+.actions .btn{min-width:132px}
+
+.stat-head{display:flex;justify-content:center;margin:20px 0 8px}
+.srow{display:grid;grid-template-columns:5.5em 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.srow .l{color:var(--mute)}
+.srow.now .l{color:var(--fg);font-weight:600}
+.srow .bar{height:8px}
+.srow .bar i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.srow.now .bar i{background:var(--accent)}
+.srow .v{font-variant-numeric:tabular-nums;text-align:right}
+.srow .v small{color:var(--mute);margin-left:8px}
+.empty{color:var(--mute);text-align:center;padding:32px 0}
+
+.set{padding:16px 0;border-bottom:1px solid var(--line)}
+.set h2{font-size:15px;font-weight:600;margin:0 0 10px}
+.hint{color:var(--mute);font-size:14px;margin:8px 0 0}
+.field{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+.field>span{min-width:4em;color:var(--mute)}
+.field input[type=text],.field input[type=password]{flex:1;min-width:12em}
+summary{cursor:pointer;font-size:15px;font-weight:600;min-height:32px}
+details[open]>summary{margin-bottom:8px}
+#statusFile,#ghStatus{word-break:break-all}
+#reconnect{
+  position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  border:1px solid var(--line);background:var(--bg);color:var(--mute);
+  border-radius:8px;padding:6px 12px;font-size:13px;min-height:36px;
+}
+</style>
+</head>
+<body>
+<header>
+  <nav id="nav">
+    <button class="tab" data-view="timer">计时</button>
+    <button class="tab" data-view="stats">统计</button>
+    <button class="tab" data-view="settings">设置</button>
+  </nav>
+  <a href="todo.html">任务清单</a>
+</header>
+
+<main>
+  <section id="v-timer">
+    <div id="clock">25:00</div>
+    <p id="meta"></p>
+    <div id="config">
+      <div class="seg" id="modeSeg">
+        <button data-mode="down" aria-pressed="true">倒计时</button>
+        <button data-mode="up" aria-pressed="false">正计时</button>
+      </div>
+      <div id="downOpts" class="line" style="flex-direction:column;gap:14px">
+        <div class="line">
+          <span>时长</span>
+          <input id="minutes" type="number" inputmode="decimal" min="0.1" step="any">
+          <span>分钟</span>
+        </div>
+        <div class="line">
+          <span>完成后</span>
+          <div class="seg" id="afterSeg">
+            <button data-after="stop" aria-pressed="true">停止</button>
+            <button data-after="next" aria-pressed="false">继续下一个</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnMain" class="btn primary">开始</button>
+      <button id="btnAlert" class="btn" hidden>停止提醒</button>
+    </div>
+    <p id="note"></p>
+  </section>
+
+  <section id="v-stats" hidden>
+    <div class="stat-head">
+      <div class="seg" id="statSeg">
+        <button data-k="day" aria-pressed="true">日</button>
+        <button data-k="week" aria-pressed="false">周</button>
+        <button data-k="month" aria-pressed="false">月</button>
+        <button data-k="year" aria-pressed="false">年</button>
+      </div>
+    </div>
+    <div id="statList"></div>
+  </section>
+
+  <section id="v-settings" hidden>
+    <div class="set">
+      <h2>日分界点</h2>
+      <input id="cutoff" type="time">
+      <p class="hint">默认 00:00（即 24:00）。设为 04:00 时，凌晨 4 点前开始的专注算作前一天。按开始时间归属，不拆分；修改后无需迁移数据。</p>
+    </div>
+    <div class="set">
+      <h2>提醒</h2>
+      <label class="field"><span>闪动</span><input id="flash" type="number" inputmode="numeric" min="0" step="1" style="width:6em"> 秒（0 为不闪动）</label>
+      <label class="field"><span>声音</span><input id="sound" type="checkbox" style="width:22px;height:22px"> 到时响铃（默认关闭）</label>
+    </div>
+    <div class="set">
+      <h2>数据</h2>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="btnExport">导出 JSON</button>
+        <button class="btn small" id="btnImport">导入 JSON</button>
+        <input id="fileImport" type="file" accept=".json,application/json" hidden>
+      </div>
+      <p id="statusData" class="hint"></p>
+    </div>
+    <div class="set" id="fsSec" hidden>
+      <h2>存档文件（Edge 桌面版）</h2>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="fsChoose">选择存档文件</button>
+        <button class="btn small" id="fsDrop" hidden>断开</button>
+      </div>
+      <p id="statusFile" class="hint"></p>
+    </div>
+    <details class="set" id="gh">
+      <summary>GitHub 同步（可选）</summary>
+      <p class="hint">数据存放在数据仓库根目录的 data.json。令牌只保存在这台设备的浏览器里，每台设备各粘贴一次；令牌只需授权该仓库的 Contents 读写。</p>
+      <label class="field"><span>仓库</span><input id="ghRepo" type="text" placeholder="用户名/仓库名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="field"><span>令牌</span><input id="ghToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="ghSave">保存并同步</button>
+        <button class="btn small" id="ghNow">立即同步</button>
+        <button class="btn small" id="ghClear">清除</button>
+      </div>
+      <p id="ghStatus" class="hint"></p>
+    </details>
+  </section>
+</main>
+
+<button id="reconnect" hidden>重新连接存档</button>
+
+<script>
+(() => {
+'use strict';
+
+/* ========== 常量与工具 ========== */
+const P = 'focus_';
+const K = { records: P + 'records', running: P + 'running', settings: P + 'settings' };
+const SHARED = { token: 'shared_gh_token', repo: 'shared_gh_repo' }; // 与任务清单页共用
+const GH_PATH = 'data.json';
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+
+const ls = {
+  get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch { return def; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn('localStorage 写入失败', e); } },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+  rawGet(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  rawSet(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+function fmtClock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+function fmtDur(s) {
+  s = Math.round(s);
+  if (s < 60) return s + '秒';
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  return h ? `${h}小时${pad(m)}分` : `${m}分`;
+}
+const fmtMin = sec => `${+(sec / 60).toFixed(2)} 分钟`;
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const hhmm = () => new Date().toTimeString().slice(0, 5);
+
+/* ========== 设置 ========== */
+const DEFAULTS = { mode: 'down', minutes: 25, after: 'stop', cutoff: 0, flash: 10, sound: false };
+let settings = loadSettings();
+function loadSettings() {
+  const s = { ...DEFAULTS, ...ls.get(K.settings, {}) };
+  if (s.mode !== 'up') s.mode = 'down';
+  if (s.after !== 'next') s.after = 'stop';
+  if (!(s.minutes >= 0.1)) s.minutes = 25;
+  s.cutoff = Number.isInteger(s.cutoff) && s.cutoff >= 0 && s.cutoff < 1440 ? s.cutoff : 0;
+  if (!(s.flash >= 0)) s.flash = 10;
+  s.sound = !!s.sound;
+  return s;
+}
+const saveSettings = () => ls.set(K.settings, settings);
+
+/* ========== 记录（唯一的数据类型）{id, start, duration} ========== */
+function normalize(arr) {
+  const out = [], seen = new Map();
+  let dropped = 0;
+  for (const r of Array.isArray(arr) ? arr : []) {
+    if (!r || typeof r !== 'object') { dropped++; continue; }
+    const id = Number(r.id), duration = Number(r.duration);
+    if (!Number.isFinite(id) || !Number.isFinite(duration) || duration < 0) { dropped++; continue; }
+    let sm = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+    if (!Number.isFinite(sm)) sm = id;
+    const rec = { id, start: new Date(sm).toISOString(), duration: Math.round(duration) };
+    const ex = seen.get(id);
+    if (ex) { if (rec.duration > ex.duration) ex.duration = rec.duration; continue; }
+    seen.set(id, rec); out.push(rec);
+  }
+  out.sort((a, b) => a.id - b.id);
+  return { list: out, dropped };
+}
+const mergeInto = (a, b) => normalize([...a, ...b]).list;
+const mkRec = (startMs, dur) => ({ id: startMs, start: new Date(startMs).toISOString(), duration: dur });
+function pushNeeded(remote, merged) {
+  const m = new Map(remote.map(r => [r.id, r.duration]));
+  return merged.some(r => !m.has(r.id) || m.get(r.id) < r.duration);
+}
+function parseData(text) {
+  if (!text || !text.trim()) return [];
+  let j;
+  try { j = JSON.parse(text); } catch { throw new Error('内容不是有效的 JSON'); }
+  const arr = Array.isArray(j) ? j : j && j.records;
+  if (!Array.isArray(arr)) throw new Error('找不到 records 数组');
+  return normalize(arr).list;
+}
+function serialize(list) {
+  return '{"version":1,"records":[\n' + list.map(r => JSON.stringify(r)).join(',\n') + '\n]}\n';
+}
+
+let records = normalize(ls.get(K.records, [])).list;
+function setRecords(list) { records = list; ls.set(K.records, records); }
+function addRecords(arr) { setRecords(mergeInto(records, arr)); }
+
+/* ========== 计时 ========== */
+let running = ls.get(K.running, null);
+if (!(running && Number.isFinite(running.start) && (running.mode === 'up' || (running.mode === 'down' && running.target > 0)))) running = null;
+const saveRunning = () => running ? ls.set(K.running, running) : ls.del(K.running);
+
+let view = 'timer', statKind = 'day', ticker = null;
+
+function startTicker() { if (!ticker) ticker = setInterval(tick, 250); }
+function stopTicker() { clearInterval(ticker); ticker = null; }
+function note(t) { $('#note').textContent = t || ''; }
+
+function startSession() {
+  if (running) return;
+  unlockAudio(); stopAlert();
+  const now = Date.now();
+  running = settings.mode === 'down'
+    ? { start: now, mode: 'down', target: Math.round(settings.minutes * 60), after: settings.after }
+    : { start: now, mode: 'up' };
+  saveRunning();           // 开始时只写 localStorage
+  note('');
+  acquireWake(); startTicker(); render();
+}
+
+function endSession() {     // 手动结束，按实际用时计入
+  if (!running) return;
+  const now = Date.now();
+  if (advance(now)) { if (!running) return; }   // 刚好到点则先按到时处理
+  let dur = Math.floor((now - running.start) / 1000);
+  if (running.mode === 'down') dur = Math.min(dur, running.target);
+  dur = Math.max(0, dur);
+  const r = running;
+  running = null; saveRunning(); stopTicker(); releaseWake();
+  if (dur >= 1) { addRecords([mkRec(r.start, dur)]); note('已记录 ' + fmtDur(dur)); syncAll(); }
+  else note('时间太短，未记录');
+  render();
+}
+
+// 到时处理：可一次补记多个周期（页面关闭期间倒计时已走完的情况）
+function advance(now) {
+  if (!running || running.mode !== 'down') return false;
+  const done = [];
+  let lastEnd = 0;
+  while (running && now >= running.start + running.target * 1000) {
+    const end = running.start + running.target * 1000;
+    done.push(mkRec(running.start, running.target));
+    lastEnd = end;
+    running = running.after === 'next' ? { ...running, start: end } : null;
+  }
+  if (!done.length) return false;
+  addRecords(done);
+  saveRunning();
+  if (!running) { stopTicker(); releaseWake(); }
+  const total = done.reduce((s, r) => s + r.duration, 0);
+  note(done.length === 1 ? '已记录 ' + fmtDur(total) : `已记录 ${done.length} 个，共 ${fmtDur(total)}`);
+  syncAll();
+  if (now - lastEnd < 15000) startAlert();
+  render();
+  return true;
+}
+
+function clockSeconds(now) {
+  if (running) {
+    const el = Math.max(0, now - running.start);
+    return running.mode === 'down' ? Math.max(0, Math.ceil((running.target * 1000 - el) / 1000)) : Math.floor(el / 1000);
+  }
+  return settings.mode === 'down' ? Math.round(settings.minutes * 60) : 0;
+}
+function tick() { advance(Date.now()); renderClock(); }
+function renderClock() {
+  const t = fmtClock(clockSeconds(Date.now()));
+  $('#clock').textContent = t;
+  if (!alertOn) document.title = running ? `${t} · 专注` : '专注';
+}
+
+/* ========== 提醒：标题栏闪动 + 可选声音 ========== */
+let alertOn = false, alertTimer = null, audioCtx = null;
+function unlockAudio() {
+  if (!settings.sound) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch {}
+}
+function beep() {
+  if (!settings.sound || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.25, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + 0.55);
+  } catch {}
+}
+function startAlert() {
+  stopAlert();
+  beep();
+  if (!(settings.flash > 0)) return;
+  const until = Date.now() + settings.flash * 1000;
+  alertOn = true; let n = 0;
+  document.title = '⏰ 时间到';
+  alertTimer = setInterval(() => {
+    if (Date.now() >= until) { stopAlert(); return; }
+    n++;
+    document.title = n % 2 ? '专注' : '⏰ 时间到';
+    if (n % 2 === 0) beep();
+  }, 600);
+  $('#clock').classList.add('ring'); $('#btnAlert').hidden = false;
+}
+function stopAlert() {
+  clearInterval(alertTimer); alertTimer = null;
+  const was = alertOn; alertOn = false;
+  $('#clock').classList.remove('ring'); $('#btnAlert').hidden = true;
+  if (was) renderClock();
+}
+
+/* ========== Screen Wake Lock ========== */
+let wake = null;
+async function acquireWake() {
+  if (!running || wake || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try {
+    const w = await navigator.wakeLock.request('screen');
+    w.addEventListener('release', () => { if (wake === w) wake = null; });
+    wake = w;
+    if (!running) releaseWake();
+  } catch { wake = null; }
+}
+function releaseWake() { if (wake) { const w = wake; wake = null; w.release().catch(() => {}); } }
+
+/* ========== 统计（全部由 records 现算） ========== */
+function attrDate(ms) {   // 归属日 = 开始时间 − 分界点
+  const d = new Date(ms - settings.cutoff * 60000);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function weekStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7); }
+function bucketKey(kind, d) {
+  if (kind === 'day') return fmtDate(d);
+  if (kind === 'week') return fmtDate(weekStart(d));
+  if (kind === 'month') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  return String(d.getFullYear());
+}
+function periods(kind) {
+  const t = attrDate(Date.now()), out = [];
+  if (kind === 'day') for (let i = 0; i < 14; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i);
+    out.push({ key: fmtDate(d), label: i === 0 ? '今天' : i === 1 ? '昨天' : `${pad(d.getMonth() + 1)}-${pad(d.getDate())} 周${'日一二三四五六'[d.getDay()]}` });
+  }
+  else if (kind === 'week') { const ws = weekStart(t); for (let i = 0; i < 12; i++) {
+    const d = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * i);
+    out.push({ key: fmtDate(d), label: i === 0 ? '本周' : `${pad(d.getMonth() + 1)}-${pad(d.getDate())} 起` });
+  } }
+  else if (kind === 'month') for (let i = 0; i < 12; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+    out.push({ key: bucketKey('month', d), label: i === 0 ? '本月' : `${d.getFullYear()}-${pad(d.getMonth() + 1)}` });
+  }
+  else for (let i = 0; i < 5; i++) {
+    const y = t.getFullYear() - i;
+    out.push({ key: String(y), label: i === 0 ? '今年' : String(y) });
+  }
+  return out;
+}
+function renderStats() {
+  const box = $('#statList');
+  box.textContent = '';
+  if (!records.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '还没有记录。完成一次专注后会显示在这里。'; box.appendChild(p); return; }
+  const buckets = new Map();
+  for (const r of records) {
+    let ms = Date.parse(r.start); if (Number.isNaN(ms)) ms = r.id;
+    const k = bucketKey(statKind, attrDate(ms));
+    const b = buckets.get(k) || { sec: 0, n: 0 };
+    b.sec += r.duration; b.n++; buckets.set(k, b);
+  }
+  const rows = periods(statKind).map(p => ({ ...p, ...(buckets.get(p.key) || { sec: 0, n: 0 }) }));
+  const max = Math.max(1, ...rows.map(r => r.sec));
+  rows.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'srow' + (i === 0 ? ' now' : '');
+    const l = document.createElement('span'); l.className = 'l'; l.textContent = r.label;
+    const bar = document.createElement('span'); bar.className = 'bar';
+    const fill = document.createElement('i'); fill.style.width = (r.sec / max * 100) + '%'; bar.appendChild(fill);
+    const v = document.createElement('span'); v.className = 'v';
+    v.textContent = r.sec ? fmtDur(r.sec) : '—';
+    if (r.n) { const s = document.createElement('small'); s.textContent = r.n + '次'; v.appendChild(s); }
+    el.append(l, bar, v); box.appendChild(el);
+  });
+}
+
+/* ========== 渲染 ========== */
+function render() {
+  for (const v of ['timer', 'stats', 'settings']) $('#v-' + v).hidden = v !== view;
+  document.querySelectorAll('#nav .tab').forEach(b => { if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  const idle = !running;
+  $('#config').hidden = !idle;
+  $('#meta').textContent = running
+    ? (running.mode === 'down' ? `倒计时 ${fmtMin(running.target)}，完成后${running.after === 'next' ? '继续下一个' : '停止'}` : '正计时')
+    : '';
+  const bm = $('#btnMain');
+  bm.textContent = idle ? '开始' : '结束';
+  bm.classList.toggle('primary', idle);
+  document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === settings.mode)));
+  document.querySelectorAll('#afterSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.after === settings.after)));
+  $('#downOpts').hidden = settings.mode !== 'down';
+  if (document.activeElement !== $('#minutes')) $('#minutes').value = +settings.minutes.toFixed(2);
+  document.querySelectorAll('#statSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === statKind)));
+  renderClock();
+  if (view === 'stats') renderStats();
+}
+function showView(v) {
+  view = v; render();
+  if (v === 'settings') populateSettings();
+}
+
+/* ========== 设置页 ========== */
+function populateSettings() {
+  $('#cutoff').value = `${pad(Math.floor(settings.cutoff / 60))}:${pad(settings.cutoff % 60)}`;
+  $('#flash').value = settings.flash;
+  $('#sound').checked = settings.sound;
+  $('#ghRepo').value = ls.rawGet(SHARED.repo) || '';
+  $('#ghToken').value = '';
+  $('#ghToken').placeholder = ls.rawGet(SHARED.token) ? '已保存（仅本设备），留空则不更改' : '粘贴 fine-grained token';
+  $('#fsSec').hidden = !FS_OK;
+  renderFileStatus(); renderGhStatus();
+}
+
+/* ========== 导出 / 导入 ========== */
+function exportJson() {
+  const blob = new Blob([serialize(records)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `focus-data-${fmtDate(new Date()).replace(/-/g, '')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  $('#statusData').textContent = `已导出 ${records.length} 条`;
+}
+async function importJson(file) {
+  const out = $('#statusData');
+  try {
+    const text = await file.text();
+    let j; try { j = JSON.parse(text); } catch { throw new Error('不是有效的 JSON'); }
+    const arr = Array.isArray(j) ? j : j && j.records;
+    if (!Array.isArray(arr)) throw new Error('找不到 records 数组');
+    const { list, dropped } = normalize(arr);
+    const before = records.length;
+    setRecords(mergeInto(records, list));
+    out.textContent = `导入 ${list.length} 条，新增 ${records.length - before} 条` + (dropped ? `，忽略无效 ${dropped} 条` : '');
+    render(); syncAll();
+  } catch (e) { out.textContent = '导入失败：' + e.message; }
+}
+
+/* ========== 存档文件（File System Access，仅 Edge/Chrome 桌面版） ========== */
+const FS_OK = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+let fsHandle = null, fileStatus = '';
+function idbOp(mode, fn) {
+  return new Promise((res, rej) => {
+    const q = indexedDB.open('focus_fs', 1);
+    q.onupgradeneeded = () => q.result.createObjectStore('h');
+    q.onerror = () => rej(q.error);
+    q.onsuccess = () => {
+      const tx = q.result.transaction('h', mode);
+      const rq = fn(tx.objectStore('h'));
+      tx.oncomplete = () => res(rq && rq.result);
+      tx.onerror = tx.onabort = () => rej(tx.error);
+    };
+  });
+}
+async function fsPerm(ask) {
+  if (!fsHandle) return false;
+  const o = { mode: 'readwrite' };
+  try {
+    if ((await fsHandle.queryPermission(o)) === 'granted') return true;
+    if (ask) return (await fsHandle.requestPermission(o)) === 'granted';
+  } catch {}
+  return false;
+}
+const showReconnect = on => { $('#reconnect').hidden = !on; };
+function renderFileStatus() {
+  $('#statusFile').textContent = fsHandle ? `${fsHandle.name}　${fileStatus}` : '未选择';
+  $('#fsDrop').hidden = !fsHandle;
+}
+async function fsChoose() {
+  try {
+    fsHandle = await window.showSaveFilePicker({ suggestedName: 'focus-data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+  } catch (e) { if (e.name !== 'AbortError') { fileStatus = '选择失败：' + e.message; renderFileStatus(); } return; }
+  try { await idbOp('readwrite', s => s.put(fsHandle, 'handle')); } catch {}
+  showReconnect(false);
+  await syncAll();
+}
+async function fsDrop() {
+  fsHandle = null; fileStatus = '';
+  try { await idbOp('readwrite', s => s.delete('handle')); } catch {}
+  showReconnect(false); renderFileStatus();
+}
+async function fileSync() {
+  if (!fsHandle) return;
+  if (!(await fsPerm(false))) { showReconnect(true); fileStatus = '需要重新连接'; return; }
+  try {
+    const text = await (await fsHandle.getFile()).text();
+    let remote;
+    try { remote = parseData(text); } catch (e) { throw new Error('存档文件无法解析，为避免覆盖已停止写入（' + e.message + '）'); }
+    const merged = mergeInto(records, remote);
+    setRecords(merged);
+    if (pushNeeded(remote, merged)) {
+      const w = await fsHandle.createWritable();
+      await w.write(serialize(merged)); await w.close();
+    }
+    fileStatus = '已同步 ' + hhmm(); showReconnect(false);
+  } catch (e) {
+    if (e.name === 'NotAllowedError') showReconnect(true);
+    fileStatus = '出错：' + (e.message || e.name);
+  }
+}
+
+/* ========== GitHub 同步（独立模块，令牌只存本机 localStorage） ========== */
+let ghStatus = '', lastFail = false;
+const ghCfg = () => {
+  const token = ls.rawGet(SHARED.token), repo = ls.rawGet(SHARED.repo);
+  return token && repo ? { token, repo } : null;
+};
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(b64.replace(/\s/g, ''));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+function ghFetch(cfg, url, opt = {}) {
+  return fetch(url, {
+    method: opt.method || 'GET',
+    cache: 'no-store',
+    body: opt.body,
+    headers: {
+      'Authorization': 'Bearer ' + cfg.token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opt.headers || {}),
+    },
+  });
+}
+function ghError(res) {
+  const e = new Error();
+  e.status = res.status;
+  if (res.status === 401) e.message = '令牌无效或已过期';
+  else if (res.status === 403) e.message = res.headers.get('x-ratelimit-remaining') === '0' ? '请求过于频繁，稍后再试' : '令牌权限不足（需要该仓库的 Contents 读写）';
+  else if (res.status === 404) e.message = '找不到仓库，请检查仓库名与令牌授权范围';
+  else e.message = 'GitHub 返回 ' + res.status;
+  return e;
+}
+async function ghGet(cfg) {
+  const url = `https://api.github.com/repos/${cfg.repo}/contents/${GH_PATH}`;
+  const res = await ghFetch(cfg, url);
+  if (res.status === 404) {                 // 区分“文件还没建”与“仓库不可访问”
+    const chk = await ghFetch(cfg, `https://api.github.com/repos/${cfg.repo}`);
+    if (chk.ok) return { text: null, sha: null };
+    throw ghError(chk);
+  }
+  if (!res.ok) throw ghError(res);
+  const j = await res.json();
+  if (Array.isArray(j) || j.type !== 'file') throw new Error('仓库里的 data.json 不是文件');
+  let text;
+  if (j.size === 0) text = '';
+  else if (j.encoding === 'base64' && j.content) text = b64decode(j.content);
+  else {                                    // 大于 1MB 时 content 为空，改取原文
+    const raw = await ghFetch(cfg, url, { headers: { 'Accept': 'application/vnd.github.raw+json' } });
+    if (!raw.ok) throw ghError(raw);
+    text = await raw.text();
+  }
+  return { text, sha: j.sha };
+}
+async function ghPut(cfg, text, sha) {
+  const body = { message: 'focus sync ' + new Date().toISOString(), content: b64encode(text) };
+  if (sha) body.sha = sha;
+  const res = await ghFetch(cfg, `https://api.github.com/repos/${cfg.repo}/contents/${GH_PATH}`, {
+    method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+  });
+  if (res.status === 409 || res.status === 422) { const e = ghError(res); e.conflict = true; throw e; }
+  if (!res.ok) throw ghError(res);
+}
+async function ghSync() {
+  const cfg = ghCfg();
+  if (!cfg) { ghStatus = ''; return; }
+  try {
+    for (let i = 0; i < 4; i++) {
+      const { text, sha } = await ghGet(cfg);
+      let remote;
+      try { remote = parseData(text); } catch { throw new Error('远端 data.json 无法解析，为避免覆盖已停止同步'); }
+      const merged = mergeInto(records, remote);
+      setRecords(merged);
+      if (!pushNeeded(remote, merged)) { ghStatus = '已同步 ' + hhmm(); lastFail = false; return; }
+      try { await ghPut(cfg, serialize(merged), sha); ghStatus = '已同步 ' + hhmm(); lastFail = false; return; }
+      catch (e) { if (e.conflict && i < 3) continue; throw e; }   // 冲突：重新读取、合并后重试
+    }
+  } catch (e) {
+    lastFail = true;
+    ghStatus = e instanceof TypeError ? '网络不可用，联网后会自动重试' : (e.conflict ? '写入冲突，重试多次仍失败' : e.message || '同步失败');
+  }
+}
+const renderGhStatus = () => { $('#ghStatus').textContent = ghCfg() ? ghStatus : '未配置'; };
+
+/* ========== 同步调度 ========== */
+let syncing = false, syncAgain = false;
+async function syncAll() {
+  if (syncing) { syncAgain = true; return; }
+  syncing = true;
+  try {
+    do { syncAgain = false; await fileSync(); await ghSync(); } while (syncAgain);
+  } finally {
+    syncing = false;
+    if (view === 'settings') { renderFileStatus(); renderGhStatus(); }
+    if (view === 'stats') renderStats();
+  }
+}
+
+/* ========== 事件 ========== */
+document.querySelectorAll('#nav .tab').forEach(b => b.onclick = () => showView(b.dataset.view));
+$('#btnMain').onclick = () => running ? endSession() : startSession();
+$('#btnAlert').onclick = stopAlert;
+$('#modeSeg').onclick = e => { const b = e.target.closest('button'); if (!b || running) return; settings.mode = b.dataset.mode; saveSettings(); render(); };
+$('#afterSeg').onclick = e => { const b = e.target.closest('button'); if (!b || running) return; settings.after = b.dataset.after; saveSettings(); render(); };
+$('#statSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; statKind = b.dataset.k; render(); };
+$('#minutes').oninput = e => { const v = parseFloat(e.target.value); if (v >= 0.1 && v <= 1440) { settings.minutes = v; saveSettings(); renderClock(); } };
+$('#minutes').onchange = e => { const v = parseFloat(e.target.value); if (!(v >= 0.1)) e.target.value = +settings.minutes.toFixed(2); else { settings.minutes = Math.min(v, 1440); saveSettings(); } render(); };
+
+$('#cutoff').onchange = e => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(e.target.value);
+  settings.cutoff = m ? Math.min(1439, +m[1] * 60 + +m[2]) : 0;
+  saveSettings(); populateSettings();
+};
+$('#flash').onchange = e => { const v = parseFloat(e.target.value); settings.flash = v >= 0 ? v : 10; saveSettings(); populateSettings(); };
+$('#sound').onchange = e => { settings.sound = e.target.checked; saveSettings(); if (settings.sound) { unlockAudio(); beep(); } };
+$('#btnExport').onclick = exportJson;
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); };
+$('#fsChoose').onclick = fsChoose;
+$('#fsDrop').onclick = fsDrop;
+$('#reconnect').onclick = async () => { if (await fsPerm(true)) { showReconnect(false); syncAll(); } };
+
+$('#ghSave').onclick = () => {
+  const repo = $('#ghRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+  const token = $('#ghToken').value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { ghStatus = '仓库格式应为 用户名/仓库名'; renderGhStatus(); $('#ghStatus').textContent = ghStatus; return; }
+  if (!token && !ls.rawGet(SHARED.token)) { $('#ghStatus').textContent = '请粘贴令牌'; return; }
+  ls.rawSet(SHARED.repo, repo);
+  if (token) ls.rawSet(SHARED.token, token);
+  $('#ghToken').value = ''; $('#ghToken').placeholder = '已保存（仅本设备），留空则不更改';
+  ghStatus = '同步中…'; renderGhStatus();
+  syncAll();
+};
+$('#ghNow').onclick = () => { if (!ghCfg()) { renderGhStatus(); return; } ghStatus = '同步中…'; renderGhStatus(); syncAll(); };
+$('#ghClear').onclick = () => {
+  try { localStorage.removeItem(SHARED.token); localStorage.removeItem(SHARED.repo); } catch {}
+  ghStatus = ''; lastFail = false; populateSettings();
+};
+
+document.addEventListener('pointerdown', unlockAudio);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (running) { acquireWake(); startTicker(); tick(); }
+  if (lastFail) syncAll();
+});
+window.addEventListener('online', () => syncAll());
+window.addEventListener('storage', e => {     // 同一浏览器的另一个标签页改了数据
+  if (!e.key || !e.key.startsWith(P)) return;
+  settings = loadSettings();
+  records = normalize(ls.get(K.records, [])).list;
+  running = ls.get(K.running, null);
+  if (!(running && Number.isFinite(running.start))) running = null;
+  running ? startTicker() : stopTicker();
+  render();
+});
+
+/* ========== 启动 ========== */
+(async function init() {
+  advance(Date.now());                 // 恢复进行中的计时（含页面关闭期间已到时的补记）
+  if (running) { startTicker(); acquireWake(); }
+  render();
+  if (FS_OK) {
+    try { fsHandle = (await idbOp('readonly', s => s.get('handle'))) || null; } catch { fsHandle = null; }
+    if (fsHandle && !(await fsPerm(false))) { showReconnect(true); fileStatus = '需要重新连接'; }
+  }
+  syncAll();                           // 读取并合并存档文件与 GitHub，必要时写回
+})();
+})();
+</script>
+</body>
+</html>
