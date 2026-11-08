@@ -82,6 +82,9 @@ details[open]>summary{margin-bottom:8px}
   border:1px solid var(--line);background:var(--bg);color:var(--mute);
   border-radius:8px;padding:6px 12px;font-size:13px;min-height:36px;
 }
+.hr{display:flex;align-items:center;gap:4px}
+.hs{border:0;background:none;color:var(--mute);font-size:12px;min-height:44px;padding:0 6px;white-space:nowrap}
+.hs.err{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -91,7 +94,7 @@ details[open]>summary{margin-bottom:8px}
     <button class="tab" data-view="stats">统计</button>
     <button class="tab" data-view="settings">设置</button>
   </nav>
-  <a href="todo.html">任务清单</a>
+  <div class="hr"><button class="hs" id="hdrSync" hidden></button><a href="todo.html">任务清单</a></div>
 </header>
 
 <main>
@@ -656,6 +659,7 @@ async function ghPut(cfg, text, sha) {
 async function ghSync() {
   const cfg = ghCfg();
   if (!cfg) { ghStatus = ''; return; }
+  ghStatus = '同步中…'; renderGhStatus();
   try {
     for (let i = 0; i < 4; i++) {
       const { text, sha } = await ghGet(cfg);
@@ -672,17 +676,23 @@ async function ghSync() {
     ghStatus = e instanceof TypeError ? '网络不可用，联网后会自动重试' : (e.conflict ? '写入冲突，重试多次仍失败' : e.message || '同步失败');
   }
 }
-const renderGhStatus = () => { $('#ghStatus').textContent = ghCfg() ? ghStatus : '未配置'; };
+const renderGhStatus = () => {
+  const c = ghCfg(), ok = /^(已同步|同步中)/.test(ghStatus), b = $('#hdrSync');
+  $('#ghStatus').textContent = c ? ghStatus : '未配置';
+  b.textContent = !c ? '未设置同步' : ok ? ghStatus : ghStatus ? '同步失败' : '';
+  b.classList.toggle('err', !!c && !!ghStatus && !ok);
+  b.title = ghStatus; b.hidden = !b.textContent;
+};
 
 /* ========== 同步调度 ========== */
-let syncing = false, syncAgain = false;
+let syncing = false, syncAgain = false, lastSyncAt = 0;
 async function syncAll() {
   if (syncing) { syncAgain = true; return; }
   syncing = true;
   try {
     do { syncAgain = false; await fileSync(); await ghSync(); } while (syncAgain);
   } finally {
-    syncing = false;
+    syncing = false; lastSyncAt = Date.now(); renderGhStatus();
     if (view === 'settings') { renderFileStatus(); renderGhStatus(); }
     if (view === 'stats') renderStats();
   }
@@ -723,6 +733,7 @@ $('#ghSave').onclick = () => {
   ghStatus = '同步中…'; renderGhStatus();
   syncAll();
 };
+$('#hdrSync').onclick = () => { if (ghCfg()) syncAll(); else showView('settings'); };
 $('#ghNow').onclick = () => { if (!ghCfg()) { renderGhStatus(); return; } ghStatus = '同步中…'; renderGhStatus(); syncAll(); };
 $('#ghClear').onclick = () => {
   try { localStorage.removeItem(SHARED.token); localStorage.removeItem(SHARED.repo); } catch {}
@@ -733,7 +744,7 @@ document.addEventListener('pointerdown', unlockAudio);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   if (running) { acquireWake(); startTicker(); tick(); }
-  if (lastFail) syncAll();
+  if (lastFail || Date.now() - lastSyncAt > 30000) syncAll();
 });
 window.addEventListener('online', () => syncAll());
 window.addEventListener('storage', e => {     // 同一浏览器的另一个标签页改了数据
@@ -757,7 +768,7 @@ window.addEventListener('storage', e => {     // 同一浏览器的另一个标�
   } catch {}
   advance(Date.now());                 // 恢复进行中的计时（含页面关闭期间已到时的补记）
   if (running) { startTicker(); acquireWake(); }
-  render();
+  render(); renderGhStatus();
   if (FS_OK) {
     try { fsHandle = (await idbOp('readonly', s => s.get('handle'))) || null; } catch { fsHandle = null; }
     if (fsHandle && !(await fsPerm(false))) { showReconnect(true); fileStatus = '需要重新连接'; }
