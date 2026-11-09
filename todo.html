@@ -100,6 +100,25 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
 .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .dot{fill:var(--accent)}
 .val{fill:var(--fg);font-size:10px;text-anchor:middle}
+.item.flash{animation:flash .8s ease-out}
+@keyframes flash{0%,60%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:transparent}}
+.cb i{transition:background .2s,border-color .2s}
+.item.flash .cb i{animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.3)}}
+@media (prefers-reduced-motion:reduce){.item.flash{animation:none;background:color-mix(in srgb,var(--accent) 28%,transparent)}.item.flash .cb i{animation:none}}
+.cal-h{display:flex;align-items:center;gap:4px;margin:12px 0 4px}
+.cal-h button{border:0;background:none;color:var(--mute);min-height:44px;min-width:44px;font-size:22px}
+.cal-h strong{flex:1;text-align:center;font-weight:600}
+.cal-h #calToday{font-size:14px}
+.cwk,.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cwk span{text-align:center;color:var(--mute);font-size:12px;padding:4px 0}
+.cd{border:0;border-radius:8px;background:none;min-height:46px;font-size:15px}
+.cd.l1{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.cd.l2{background:color-mix(in srgb,var(--accent) 34%,transparent)}
+.cd.l3{background:color-mix(in srgb,var(--accent) 52%,transparent)}
+.cd.l4{background:color-mix(in srgb,var(--accent) 88%,transparent);color:var(--accent-fg)}
+.cd.today{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.cd.sel{outline:2px solid var(--fg);outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -108,6 +127,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
     <a href="index.html">番茄钟</a>
     <button class="tab" data-view="list">清单</button>
     <button class="tab" data-view="stats">统计</button>
+    <button class="tab" data-view="cal">日历</button>
   </div>
   <div class="hr">
     <button class="hs" id="hdrSync"></button>
@@ -165,6 +185,11 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
       <button class="btn" id="ghClear">清除设置</button>
     </div>
   </details>
+  <details class="set" id="cutSet">
+    <summary>日分界点</summary>
+    <p class="hint">与番茄钟页共用同一个设置（仅本设备）。默认 00:00；设为 04:00 时，凌晨 4 点前算前一天。影响循环任务的“今天”、统计的日期归属和日历的“今天”。</p>
+    <input id="cutoff" type="time" style="width:auto">
+  </details>
   <div class="row" style="margin-top:14px"><button class="btn primary" id="btnPush">同步到仓库</button></div>
   <p class="hint" id="syncStatus"></p>
 
@@ -186,6 +211,14 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
   </div></div>
   <p class="hint" id="stSum" style="text-align:center"></p>
   <div id="chart"></div>
+</div>
+
+<div id="vCal" hidden>
+  <div class="cal-h"><button id="calPrev" aria-label="上个月">‹</button><strong id="calTitle"></strong><button id="calNext" aria-label="下个月">›</button><button id="calToday">今天</button></div>
+  <div class="cwk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+  <div class="cgrid" id="calGrid"></div>
+  <h3 class="grp" id="calHead" style="margin-top:16px"></h3>
+  <ul id="calList"></ul>
 </div>
 </main>
 
@@ -263,6 +296,12 @@ function fmtTime(s) {
   const t = d.getHours() || d.getMinutes() ? ` ${pad(d.getHours())}:${pad(d.getMinutes())}` : '';
   return `${y}${pad(d.getMonth() + 1)}-${pad(d.getDate())}${t}`;
 }
+const cutoffMin = () => { const c = (ls.get('focus_settings', {}) || {}).cutoff; return Number.isInteger(c) && c >= 0 && c < 1440 ? c : 0; };
+function setCutoff(m) { const o = ls.get('focus_settings', {}); ls.set('focus_settings', { ...(o && typeof o === 'object' ? o : {}), cutoff: m }); }
+function attrDate(ms) { const d = new Date(ms - cutoffMin() * 60000); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function fillCut() { const c = cutoffMin(); $('#cutoff').value = `${pad(Math.floor(c / 60))}:${pad(c % 60)}`; }
+let animUntil = 0, animTimer = null;
 const fmtStamp = ms => { const d = new Date(ms); return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
 /* ========== 数据 ========== */
@@ -357,7 +396,14 @@ function toggleDone(id) {
       if (nx && !nx.deleted && !nx.done) { nx.deleted = true; nx.updatedAt = n; }
     }
   }
-  commit(); render();
+  commit();
+  document.querySelectorAll(`.item[data-id="${CSS.escape(id)}"]`).forEach(li => {
+    li.classList.toggle('done', t.done);
+    li.querySelector('.cb').setAttribute('aria-checked', String(t.done));
+    li.classList.remove('flash'); void li.offsetWidth; li.classList.add('flash');
+  });
+  animUntil = Date.now() + 800; clearTimeout(animTimer);
+  animTimer = setTimeout(() => { animUntil = 0; doRender(); }, 800);
 }
 
 /* ========== 渲染 ========== */
@@ -402,12 +448,16 @@ function fillList(ul, list, emptyText) {
   for (const t of list) ul.appendChild(rowEl(t));
 }
 const byOrd = l => l.slice().sort((a, b) => a.ord - b.ord || a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
-function isToday(t) {            // 开始时间（没有则看截止时间）不晚于今天 → 今天；没填时间也算今天
-  const e = new Date(); e.setHours(23, 59, 59, 999);
+function isToday(t) {            // 开始时间（没有则看截止时间）早于今天的终点（下一个分界点）→ 今天；没填时间也算今天
+  const t0 = attrDate(Date.now()), end = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1).getTime() + cutoffMin() * 60000;
   const k = parseLocal(t.start) ?? parseLocal(t.due);
-  return k == null || k <= e.getTime();
+  return k == null || k < end;
 }
 function render() {
+  if (Date.now() < animUntil) return;      // 完成动画期间先不重排，动画结束后统一重绘
+  doRender();
+}
+function doRender() {
   const live = tasks.filter(t => !t.deleted);
   const A = live.filter(t => !t.done && !t.repeat), R = live.filter(t => !t.done && t.repeat), B = live.filter(t => t.done);
   $('#cntA').textContent = A.length; $('#cntR').textContent = R.length; $('#cntB').textContent = B.length;
@@ -417,18 +467,19 @@ function render() {
   fillList($('#listR2'), byOrd(R.filter(t => !isToday(t))), '没有安排在以后的循环任务');
   fillList($('#listB'), sorted(B, ui.sortB), '还没有已完成的任务');
   if (view === 'stats') renderStats();
+  if (view === 'cal') renderCal();
 }
 
 /* ========== 视图切换 + 统计折线图 ========== */
 let view = 'list', statRange = 'week';
 function setView(v) {
-  view = v; $('#vList').hidden = v !== 'list'; $('#vStats').hidden = v !== 'stats';
+  view = v; $('#vList').hidden = v !== 'list'; $('#vStats').hidden = v !== 'stats'; $('#vCal').hidden = v !== 'cal';
   document.querySelectorAll('.tab').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
-  render();
+  doRender();
 }
 function statSeries() {
-  const dk = ms => { const d = new Date(ms); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-  const cnt = new Map(), now = new Date(), pts = [];
+  const dk = ms => { const d = attrDate(ms); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const cnt = new Map(), now = attrDate(Date.now()), pts = [];
   const done = tasks.filter(t => !t.deleted && t.done && t.doneAt);
   if (statRange === 'year') {
     for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); pts.push({ k: dk(d.getTime()).slice(0, 7), l: (d.getMonth() + 1) + '月' }); }
@@ -461,6 +512,49 @@ function renderStats() {
   const u = statRange === 'year' ? '月' : '天';
   $('#stSum').textContent = `合计 ${total} 个　${u === '月' ? '月' : '日'}均 ${+(total / n).toFixed(1)}　最多 ${best.v} 个${best.v ? `（${best.l}）` : ''}`;
 }
+
+/* ========== 日历（只含未完成的单次任务） ========== */
+let calM = null, calSel = null;
+function calMap() {
+  const m = new Map(), re = /^\d{4}-\d{2}-\d{2}/;
+  for (const t of tasks) {
+    if (t.deleted || t.done || t.repeat) continue;
+    const s = t.start && re.test(t.start) ? t.start.slice(0, 10) : null, d = t.due && re.test(t.due) ? t.due.slice(0, 10) : null;
+    if (!s && !d) continue;
+    const a = s || d; let b = d || s; if (b < a) b = a;
+    const p = a.split('-').map(Number);
+    for (let i = 0; i < 3700; i++) {
+      const k = dkey(new Date(p[0], p[1] - 1, p[2] + i)); if (k > b) break;
+      if (!m.has(k)) m.set(k, []); m.get(k).push(t);
+    }
+  }
+  return m;
+}
+function renderCal() {
+  const t0 = attrDate(Date.now()), today = dkey(t0);
+  if (!calM) calM = { y: t0.getFullYear(), m: t0.getMonth() };
+  if (!calSel) calSel = today;
+  const map = calMap(), off = (new Date(calM.y, calM.m, 1).getDay() + 6) % 7, days = new Date(calM.y, calM.m + 1, 0).getDate();
+  $('#calTitle').textContent = `${calM.y}年${calM.m + 1}月`;
+  let h = '<span></span>'.repeat(off);
+  for (let d = 1; d <= days; d++) {
+    const k = dkey(new Date(calM.y, calM.m, d)), n = (map.get(k) || []).length;
+    h += `<button class="cd${n ? ' l' + Math.min(n, 4) : ''}${k === today ? ' today' : ''}${k === calSel ? ' sel' : ''}" data-k="${k}" aria-label="${k}，${n} 个任务">${d}</button>`;
+  }
+  $('#calGrid').innerHTML = h;
+  const [y, m, d] = calSel.split('-').map(Number), list = map.get(calSel) || [];
+  $('#calHead').textContent = `${pad(m)}-${pad(d)} 周${'日一二三四五六'[new Date(y, m - 1, d).getDay()]}　${list.length} 项`;
+  fillList($('#calList'), sorted(list, 'due'), '这一天没有任务');
+}
+const calGo = n => { const d = new Date(calM.y, calM.m + n, 1); calM = { y: d.getFullYear(), m: d.getMonth() }; renderCal(); };
+$('#calPrev').onclick = () => calGo(-1);
+$('#calNext').onclick = () => calGo(1);
+$('#calToday').onclick = () => { calM = null; calSel = null; renderCal(); };
+$('#calGrid').onclick = e => { const b = e.target.closest('.cd'); if (b) { calSel = b.dataset.k; renderCal(); } };
+$('#cutoff').onchange = e => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(e.target.value);
+  setCutoff(m ? Math.min(1439, +m[1] * 60 + +m[2]) : 0); fillCut(); doRender();
+};
 
 /* ========== 循环任务：长按拖动排序（只在同一分组内） ========== */
 let press = null, drag = null, justDragged = false;
@@ -706,7 +800,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => setView(b.datas
 $('#rangeSeg').onclick = e => { const b = e.target.closest('button'); if (b) { statRange = b.dataset.r; renderStats(); } };
 $('#sortA').onchange = e => { ui.sortA = e.target.value; ls.set(K.ui, ui); render(); };
 $('#sortB').onchange = e => { ui.sortB = e.target.value; ls.set(K.ui, ui); render(); };
-for (const id of ['#listA', '#listR1', '#listR2', '#listB']) $(id).onclick = e => {
+for (const id of ['#listA', '#listR1', '#listR2', '#listB', '#calList']) $(id).onclick = e => {
   if (justDragged) return;
   const li = e.target.closest('.item'); if (!li) return;
   if (e.target.closest('.cb')) toggleDone(li.dataset.id);
@@ -735,11 +829,12 @@ window.addEventListener('online', () => doSync(true));
 $('#ghClear').onclick = () => { ls.rawDel(GH.token); ls.rawDel(GH.repo); syncMsg = ''; $('#ghToken').value = ''; fillGhFields(); renderSync(); };
 window.addEventListener('storage', e => {
   if (e.key === K.tasks) { tasks = normAll(ls.get(K.tasks, [])); render(); }
+  if (e.key === 'focus_settings') { fillCut(); render(); }
 });
 
 /* ========== 启动 ========== */
 if (location.hash === '#edit') history.replaceState(null, '', location.pathname + location.search);
-fillGhFields(); renderSync(); setView('list');
+fillGhFields(); fillCut(); renderSync(); setView('list');
 doSync(true);                       // 打开页面时先拉取云端并合并
 })();
 </script>
