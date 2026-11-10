@@ -448,10 +448,9 @@ function fillList(ul, list, emptyText) {
   for (const t of list) ul.appendChild(rowEl(t));
 }
 const byOrd = l => l.slice().sort((a, b) => a.ord - b.ord || a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
-function isToday(t) {            // 开始时间（没有则看截止时间）早于今天的终点（下一个分界点）→ 今天；没填时间也算今天
-  const t0 = attrDate(Date.now()), end = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1).getTime() + cutoffMin() * 60000;
-  const k = parseLocal(t.start) ?? parseLocal(t.due);
-  return k == null || k < end;
+function isToday(t) {            // 只比日期：开始日期（没有则看截止日期）不晚于今天（按分界点算）→ 今天；没填时间也算今天
+  const k = t.start || t.due;
+  return !k || !/^\d{4}-\d{2}-\d{2}/.test(k) || k.slice(0, 10) <= dkey(attrDate(Date.now()));
 }
 function render() {
   if (Date.now() < animUntil) return;      // 完成动画期间先不重排，动画结束后统一重绘
