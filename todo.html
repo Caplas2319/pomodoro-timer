@@ -24,8 +24,12 @@ body{
   font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
 }
 header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
-header{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-bottom:1px solid var(--line)}
-header a{color:var(--mute);text-decoration:none;padding:12px 4px;font-size:15px}
+header{padding-top:6px;border-bottom:1px solid var(--line)}
+.pg,.fn{display:flex;align-items:center}
+.fn{padding-bottom:2px}
+.fn .tab{font-size:14px;min-height:44px;padding:10px 6px}
+.fn .sp{flex:1}
+a.tab{text-decoration:none;display:inline-flex;align-items:center}
 #btnNew{border:0;background:none;color:var(--fg);font-size:28px;line-height:1;width:48px;height:48px;cursor:pointer}
 main{padding-top:8px;padding-bottom:64px}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -123,13 +127,17 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
 </head>
 <body>
 <header>
-  <div class="hl">
-    <a href="index.html">番茄钟</a>
+  <div class="pg">
+    <a class="tab" href="index.html">番茄钟</a>
+    <button class="tab" id="tabList" aria-current="page">清单</button>
+    <a class="tab" href="chat.html">对话</a>
+  </div>
+  <div class="fn">
     <button class="tab" data-view="list">清单</button>
     <button class="tab" data-view="stats">统计</button>
     <button class="tab" data-view="cal">日历</button>
-  </div>
-  <div class="hr">
+    <button class="tab" data-view="settings">设置</button>
+    <span class="sp"></span>
     <button class="hs" id="hdrSync"></button>
     <button id="btnNew" aria-label="新建任务">＋</button>
   </div>
@@ -175,6 +183,26 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
     <ul id="listB" hidden></ul>
   </section>
 
+</div>
+
+<div id="vStats" hidden>
+  <div class="srange"><div class="seg" id="rangeSeg">
+    <button data-r="week" aria-pressed="true">周</button>
+    <button data-r="month" aria-pressed="false">月</button>
+    <button data-r="year" aria-pressed="false">年</button>
+  </div></div>
+  <p class="hint" id="stSum" style="text-align:center"></p>
+  <div id="chart"></div>
+</div>
+
+<div id="vCal" hidden>
+  <div class="cal-h"><button id="calPrev" aria-label="上个月">‹</button><strong id="calTitle"></strong><button id="calNext" aria-label="下个月">›</button><button id="calToday">今天</button></div>
+  <div class="cwk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+  <div class="cgrid" id="calGrid"></div>
+  <h3 class="grp" id="calHead" style="margin-top:16px"></h3>
+  <ul id="calList"></ul>
+</div>
+<div id="vSettings" hidden>
   <details class="set" id="gh">
     <summary>同步设置</summary>
     <p class="hint">数据存放在数据仓库根目录的 todo.json。仓库与令牌和番茄钟页面共用，填一次即可；令牌只保存在这台设备的浏览器里，只需授权该仓库的 Contents 读写。</p>
@@ -201,24 +229,6 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
     </div>
     <p class="hint" id="dataStatus"></p>
   </div>
-</div>
-
-<div id="vStats" hidden>
-  <div class="srange"><div class="seg" id="rangeSeg">
-    <button data-r="week" aria-pressed="true">周</button>
-    <button data-r="month" aria-pressed="false">月</button>
-    <button data-r="year" aria-pressed="false">年</button>
-  </div></div>
-  <p class="hint" id="stSum" style="text-align:center"></p>
-  <div id="chart"></div>
-</div>
-
-<div id="vCal" hidden>
-  <div class="cal-h"><button id="calPrev" aria-label="上个月">‹</button><strong id="calTitle"></strong><button id="calNext" aria-label="下个月">›</button><button id="calToday">今天</button></div>
-  <div class="cwk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
-  <div class="cgrid" id="calGrid"></div>
-  <h3 class="grp" id="calHead" style="margin-top:16px"></h3>
-  <ul id="calList"></ul>
 </div>
 </main>
 
@@ -472,8 +482,8 @@ function doRender() {
 /* ========== 视图切换 + 统计折线图 ========== */
 let view = 'list', statRange = 'week';
 function setView(v) {
-  view = v; $('#vList').hidden = v !== 'list'; $('#vStats').hidden = v !== 'stats'; $('#vCal').hidden = v !== 'cal';
-  document.querySelectorAll('.tab').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  view = v; $('#vList').hidden = v !== 'list'; $('#vStats').hidden = v !== 'stats'; $('#vCal').hidden = v !== 'cal'; $('#vSettings').hidden = v !== 'settings';
+  document.querySelectorAll('.fn .tab').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   doRender();
 }
 function statSeries() {
@@ -795,7 +805,8 @@ function toggleFold(btn, ul) {
 $('#foldA').onclick = () => toggleFold($('#foldA'), $('#listA'));
 $('#foldB').onclick = () => toggleFold($('#foldB'), $('#listB'));
 $('#foldR').onclick = () => toggleFold($('#foldR'), $('#listR'));
-document.querySelectorAll('.tab').forEach(b => b.onclick = () => setView(b.dataset.view));
+document.querySelectorAll('.fn .tab').forEach(b => b.onclick = () => setView(b.dataset.view));
+$('#tabList').onclick = () => setView('list');
 $('#rangeSeg').onclick = e => { const b = e.target.closest('button'); if (b) { statRange = b.dataset.r; renderStats(); } };
 $('#sortA').onchange = e => { ui.sortA = e.target.value; ls.set(K.ui, ui); render(); };
 $('#sortB').onchange = e => { ui.sortB = e.target.value; ls.set(K.ui, ui); render(); };
@@ -823,7 +834,7 @@ $('#btnImport').onclick = () => $('#fileImport').click();
 $('#fileImport').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); };
 $('#ghSync').onclick = () => doSync();
 $('#btnPush').onclick = () => doSync();
-$('#hdrSync').onclick = () => { if (ghCfg()) doSync(); else { setView('list'); $('#gh').open = true; $('#gh').scrollIntoView({ block: 'center' }); } };
+$('#hdrSync').onclick = () => { if (ghCfg()) doSync(); else { setView('settings'); $('#gh').open = true; } };
 window.addEventListener('online', () => doSync(true));
 $('#ghClear').onclick = () => { ls.rawDel(GH.token); ls.rawDel(GH.repo); syncMsg = ''; $('#ghToken').value = ''; fillGhFields(); renderSync(); };
 window.addEventListener('storage', e => {

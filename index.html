@@ -24,11 +24,15 @@ body{
   font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
 }
 header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
-header{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-bottom:1px solid var(--line)}
+header{padding-top:6px;border-bottom:1px solid var(--line)}
+.pg,.fn{display:flex;align-items:center}
+.fn{padding-bottom:2px}
+.fn .tab{font-size:14px;min-height:44px;padding:10px 8px}
+.fn .hs{margin-left:auto}
+a.tab{text-decoration:none;display:inline-flex;align-items:center}
 nav{display:flex;gap:4px}
 .tab{border:0;background:none;color:var(--mute);font:inherit;padding:10px 12px;min-height:48px;border-bottom:2px solid transparent;cursor:pointer}
 .tab[aria-current=page]{color:var(--fg);border-bottom-color:var(--accent)}
-header a{color:var(--mute);text-decoration:none;padding:10px 4px;font-size:15px}
 main{padding-top:8px;padding-bottom:96px}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -89,12 +93,18 @@ details[open]>summary{margin-bottom:8px}
 </head>
 <body>
 <header>
-  <nav id="nav">
-    <button class="tab" data-view="timer">计时</button>
-    <button class="tab" data-view="stats">统计</button>
-    <button class="tab" data-view="settings">设置</button>
-  </nav>
-  <div class="hr"><button class="hs" id="hdrSync" hidden></button><a href="todo.html">任务清单</a></div>
+  <div class="pg">
+    <button class="tab" id="tabTimer" aria-current="page">番茄钟</button>
+    <a class="tab" href="todo.html">清单</a>
+    <a class="tab" href="chat.html">对话</a>
+  </div>
+  <div class="fn">
+    <nav id="nav">
+      <button class="tab" data-view="stats">统计</button>
+      <button class="tab" data-view="settings">设置</button>
+    </nav>
+    <button class="hs" id="hdrSync" hidden></button>
+  </div>
 </header>
 
 <main>
@@ -700,6 +710,7 @@ async function syncAll() {
 
 /* ========== 事件 ========== */
 document.querySelectorAll('#nav .tab').forEach(b => b.onclick = () => showView(b.dataset.view));
+$('#tabTimer').onclick = () => showView('timer');
 $('#btnMain').onclick = () => running ? endSession() : startSession();
 $('#btnAlert').onclick = stopAlert;
 $('#modeSeg').onclick = e => { const b = e.target.closest('button'); if (!b || running) return; settings.mode = b.dataset.mode; saveSettings(); render(); };
