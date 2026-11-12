@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>对话</title>
+<style>
+:root{--bg:#f6f7f8;--fg:#1d2125;--mute:#69727c;--line:#dde1e5;--accent:#2f6f5e;--accent-fg:#fff;--bub:#e9edef;--danger:#b3382c}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e4e7ea;--mute:#8a949e;--line:#272c31;--accent:#6db39e;--accent-fg:#0d1512;--bub:#1e2327;--danger:#e07a6e}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);min-height:100vh;font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif}
+header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
+header{padding-top:6px;border-bottom:1px solid var(--line)}
+.pg,.fn{display:flex;align-items:center}
+.tab{border:0;background:none;color:var(--mute);padding:10px 8px;min-height:48px;font-size:15px;border-bottom:2px solid transparent;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
+.fn .tab{font-size:14px;min-height:44px}
+.tab[aria-current=page]{color:var(--fg);border-bottom-color:var(--accent)}
+main{padding-top:8px;padding-bottom:150px}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:44px;width:100%}
+input[type=checkbox]{width:22px;height:22px;min-height:0}
+textarea{resize:vertical}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:none;border-radius:10px;padding:6px 14px;min-height:44px;font-size:15px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.row select{width:auto;flex:1;min-width:8em}
+.hint{color:var(--mute);font-size:14px;margin:6px 0}
+.field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.field>span{color:var(--mute);font-size:14px}
+.set{padding:14px 0;border-bottom:1px solid var(--line)}
+.set h2{font-size:15px;margin:0 0 8px}
+.b{padding:10px 12px;border-radius:12px;background:var(--bub);margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.b.u{margin-left:15%;background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.b.a{margin-right:6%}
+.mt{color:var(--mute);font-size:12px;margin:-6px 0 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mt button{border:0;background:none;color:var(--mute);font-size:12px;padding:6px 0;cursor:pointer}
+.er{color:var(--danger)}
+#bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#bar>div{max-width:640px;margin:0 auto;padding:4px 20px 8px}
+#inp{max-height:30vh;padding-right:50px;display:block}
+.ibox{position:relative}
+.sd{position:absolute;right:6px;bottom:6px;width:34px;height:34px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ib{border:0;background:none;color:var(--fg);width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.tl{display:flex;align-items:center;margin-left:-10px;color:var(--mute);font-size:12px}
+#lt{display:flex;margin-left:auto;margin-right:-10px}
+.rt{display:flex}
+#mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20}
+#drawer,.sheet{position:fixed;z-index:21;background:var(--bg);visibility:hidden;transition:transform .2s,visibility .2s;overflow:auto}
+#drawer{top:0;bottom:0;right:0;width:min(80vw,320px);transform:translateX(100%);border-left:1px solid var(--line);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.sheet{left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:75vh;transform:translateY(100%);border-radius:16px 16px 0 0;border-top:1px solid var(--line);padding:0 20px calc(12px + env(safe-area-inset-bottom,0px))}
+#actSheet{min-height:45vh}
+#drawer.on,.sheet.on{transform:none;visibility:visible}
+.dh{font-weight:600;padding:16px 16px 8px}.sheet .dh{padding-left:0}
+.sl{color:var(--mute);font-size:13px;padding:10px 0 2px}
+.ci{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 16px;font-size:15px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow-wrap:anywhere}
+.sheet .ci{padding-left:0;padding-right:0}
+.ci.cur{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ci small{display:block;color:var(--mute);font-size:12px}
+.ci.er{color:var(--danger)}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0}
+.card .t{font-weight:600;overflow-wrap:anywhere}
+.card .m{color:var(--mute);font-size:14px;overflow-wrap:anywhere}
+.empty{color:var(--mute);text-align:center;padding:40px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="pg">
+    <a class="tab" href="index.html">番茄钟</a>
+    <a class="tab" href="todo.html">清单</a>
+    <button class="tab" id="tabChat" aria-current="page">对话</button>
+  </div>
+  <div class="fn">
+    <span class="rt">
+      <button class="tab" data-view="chat">对话</button>
+      <button class="tab" data-view="rv">复盘</button>
+      <button class="tab" data-view="set">设置</button>
+    </span>
+    <span id="lt"><button class="ib" id="btnDrawer" aria-label="历史对话"></button><button class="ib" id="newConv" aria-label="新对话"></button></span>
+  </div>
+</header>
+
+<main>
+<div id="vChat">
+  <div id="msgs"></div>
+</div>
+
+<div id="vSet" hidden>
+  <div class="set">
+    <h2>API</h2>
+    <div id="apiList"></div>
+    <button class="btn" id="apiAdd">添加 API</button>
+    <div id="ed" hidden>
+      <label class="field"><span>名称</span><input id="eName" type="text" autocomplete="off"></label>
+      <label class="field"><span>格式</span><select id="eFmt"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option></select></label>
+      <label class="field"><span>接口地址</span><input id="eUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="field"><span>密钥（只存本机）</span><input id="eKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <div class="field"><span>模型</span>
+        <div class="row" style="margin:0"><select id="eModel"></select><button class="btn" id="ePull">拉取模型</button></div></div>
+      <div class="row"><button class="btn primary" id="eSave">保存</button><button class="btn" id="eCancel">取消</button><button class="btn" id="eDel">删除</button></div>
+      <p class="hint" id="eMsg"></p>
+    </div>
+  </div>
+  <div class="set">
+    <h2>对话</h2>
+    <label class="row"><input type="checkbox" id="cStream"> 流式输出</label>
+    <label class="field"><span>对话长度（带入上下文的最近组数，0 为不限）</span><input id="cLen" type="number" inputmode="numeric" min="0" step="1"></label>
+    <label class="row"><input type="checkbox" id="cCtx"> 让模型看到专注与任务统计</label>
+    <label class="field"><span>任务详情</span><select id="cTier"><option value="stat">仅统计</option><option value="name">附未完成任务名</option><option value="note">附任务名和备注</option></select></label>
+    <label class="row"><input type="checkbox" id="cTool"> 允许模型提议添加任务（需你确认；部分中转站可能不支持工具）</label>
+    <label class="field"><span>系统提示（可留空）</span><textarea id="cSys" rows="3"></textarea></label>
+  </div>
+  <div class="set">
+    <h2>数据</h2>
+    <div class="row"><button class="btn" id="btnExport">导出对话 JSON</button><button class="btn" id="btnImport">导入</button><input id="fileImport" type="file" accept=".json,application/json" hidden></div>
+    <p class="hint" id="dataMsg"></p>
+    <label class="row"><input type="checkbox" id="cSync"> 自动同步对话到仓库（chat.json）</label>
+    <div class="row"><button class="btn" id="syncNow">立即同步</button></div>
+    <p class="hint" id="syncMsg"></p>
+    <p class="hint">仓库与令牌沿用番茄钟、清单页设置里填写的那组；API 密钥不会同步。</p>
+  </div>
+</div>
+<div id="vRv" hidden>
+  <div class="row"><button class="btn primary" data-p="today">今日复盘</button><button class="btn primary" data-p="week">本周复盘</button><button class="btn" id="rvStop" hidden>停止</button></div>
+  <p class="hint">使用设置里的「总结 API」，未设置时用对话所选的 API。</p>
+  <div class="b a" id="rvOut" hidden></div>
+  <div class="mt" id="rvMeta"></div>
+</div>
+</main>
+
+<div id="bar"><div>
+  <div class="tl"><button class="ib" id="btnModel" aria-label="模型选择"></button><span id="tokSum"></span></div>
+  <div class="ibox"><textarea id="inp" rows="1" placeholder="说点什么…（Ctrl+Enter 发送）"></textarea><button class="sd" id="send"></button></div>
+</div></div>
+<div id="mask" hidden></div>
+<aside id="drawer"><div class="dh">历史对话</div><div id="convList"></div></aside>
+<div class="sheet" id="mdSheet"><div class="dh">API 设置</div><div id="mdBody"></div><div class="row"><button class="btn" id="mdManage">管理 API</button></div></div>
+<div class="sheet" id="actSheet"><div class="dh" id="actTitle"></div><button class="ci" id="actRename">重命名</button><button class="ci er" id="actDel">删除</button></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let apis = ls.get('chat_apis', []), convs = ls.get('chat_convs', []), tomb = ls.get('chat_tomb', {});
+let cfg = { sync: false, tool: false, sumApi: null, ctx: true, tier: 'stat', stream: true, len: 10, cur: null, api: null, system: '', ...ls.get('chat_cfg', {}) };
+const save = () => { ls.set('chat_apis', apis); ls.set('chat_convs', convs); ls.set('chat_tomb', tomb); ls.set('chat_cfg', cfg); schedSync(); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const est = s => { let c = 0; for (const ch of s) if (ch > '\u2e80') c++; return c + Math.ceil((s.length - c) / 4); };
+const PH = { openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1' };
+const FMT = { openai: 'OpenAI 兼容', anthropic: 'Anthropic' };
+const cur = () => {
+  let c = convs.find(x => x.id === cfg.cur);
+  if (!c) { c = { id: uid(), title: '新对话', at: Date.now(), groups: [] }; convs.unshift(c); cfg.cur = c.id; save(); }
+  return c;
+};
+
+/* ===== API ===== */
+const base = a => a.url.trim().replace(/\/+$/, '');
+const hdr = a => a.fmt === 'anthropic'
+  ? { 'x-api-key': a.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' }
+  : { 'Authorization': 'Bearer ' + a.key, 'content-type': 'application/json' };
+const errText = async r => { let t = ''; try { t = (await r.text()).slice(0, 200); } catch {} return `HTTP ${r.status} ${t}`; };
+async function fetchModels(a) {
+  const r = await fetch(base(a) + '/models' + (a.fmt === 'anthropic' ? '?limit=1000' : ''), { headers: hdr(a) });
+  if (!r.ok) throw new Error(await errText(r));
+  const j = await r.json();
+  return (j.data || []).map(m => m.id).filter(Boolean).sort();
+}
+
+/* ===== 对话渲染 ===== */
+let busy = false, ctl = null, live = null;
+const bub = (cls, txt) => { const d = document.createElement('div'); d.className = 'b ' + cls; d.textContent = txt; return d; };
+function draw() {
+  const c = cur(), box = $('#msgs'); box.textContent = ''; live = null;
+  if (!c.groups.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = '开始一段对话吧'; box.appendChild(e); }
+  c.groups.forEach((g, i) => {
+    box.appendChild(bub('u', g.u));
+    const isLive = busy && i === c.groups.length - 1;
+    const a = bub('a', g.a || (isLive ? '…' : '')); if (!g.a && !isLive) a.hidden = true;
+    box.appendChild(a); if (isLive) live = a; else (g.tasks || []).forEach(k => box.appendChild(card(k)));
+    if (!isLive) {
+      const m = document.createElement('div'); m.className = 'mt';
+      const s = document.createElement('span');
+      s.textContent = g.ms ? `耗时 ${(g.ms / 1000).toFixed(1)}s · 输入≈${g.ti} 输出≈${g.to} token` : '';
+      m.appendChild(s);
+      if (g.err) { const e = document.createElement('span'); e.className = 'er'; e.textContent = g.err; m.appendChild(e); }
+      const x = document.createElement('button'); x.textContent = '删除'; x.onclick = () => { if (!busy) { c.groups.splice(i, 1); c.at = Date.now(); save(); draw(); } };
+      m.appendChild(x); box.appendChild(m);
+    }
+  });
+  updTok(); scrollTo(0, document.body.scrollHeight);
+}
+const ICON = {
+  menu: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  model: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>',
+  send: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+  stop: '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>',
+};
+$('#btnDrawer').innerHTML = ICON.menu; $('#newConv').innerHTML = ICON.plus; $('#btnModel').innerHTML = ICON.model;
+const setBusy = b => { busy = b; $('#send').innerHTML = b ? ICON.stop : ICON.send; $('#send').setAttribute('aria-label', b ? '停止' : '发送'); };
+setBusy(false);
+function drawTop() { cur(); drawList(); }
+function drawList() {
+  const box = $('#convList'); box.textContent = '';
+  convs.forEach(c => {
+    const b = document.createElement('button'); b.className = 'ci' + (c.id === cfg.cur ? ' cur' : ''); b.dataset.id = c.id; b.textContent = c.title;
+    const sm = document.createElement('small'), d = new Date(c.at || 0);
+    sm.textContent = `${d.getMonth() + 1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} · ${c.groups.length} 组`;
+    b.appendChild(sm); box.appendChild(b);
+  });
+}
+function updTok() { let n = 0; for (const g of cur().groups) n += (g.ti || 0) + (g.to || 0); $('#tokSum').textContent = n ? `总≈${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n} token` : ''; }
+const panels = () => [...document.querySelectorAll('#drawer.on,.sheet.on')];
+const openP = el => { el.classList.add('on'); $('#mask').hidden = false; };
+const closeP = el => { el.classList.remove('on'); if (!panels().length) $('#mask').hidden = true; };
+$('#mask').onclick = () => { const p = panels(); if (p.length) closeP(p[p.length - 1]); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { const p = panels(); if (p.length) closeP(p[p.length - 1]); } });
+$('#btnDrawer').onclick = () => { drawList(); openP($('#drawer')); };
+function switchConv(id) { if (busy) return; cfg.cur = id; save(); drawTop(); draw(); closeP($('#drawer')); }
+let lpT = null, lpFired = false, lpXY = null, actId = null;
+const CL = $('#convList'), lpCancel = () => clearTimeout(lpT);
+function openAct(id) { const c = convs.find(x => x.id === id); if (!c) return; actId = id; $('#actTitle').textContent = c.title; openP($('#actSheet')); }
+CL.addEventListener('pointerdown', e => { const b = e.target.closest('.ci'); if (!b) return; lpFired = false; lpXY = [e.clientX, e.clientY]; lpT = setTimeout(() => { lpFired = true; openAct(b.dataset.id); }, 500); });
+CL.addEventListener('pointermove', e => { if (lpXY && Math.hypot(e.clientX - lpXY[0], e.clientY - lpXY[1]) > 8) lpCancel(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(t => CL.addEventListener(t, lpCancel));
+CL.addEventListener('contextmenu', e => { e.preventDefault(); const b = e.target.closest('.ci'); if (b) { lpCancel(); lpFired = true; openAct(b.dataset.id); } });
+CL.addEventListener('click', e => { const b = e.target.closest('.ci'); if (!b) return; if (lpFired) { lpFired = false; return; } switchConv(b.dataset.id); });
+$('#actRename').onclick = () => {
+  const c = convs.find(x => x.id === actId); closeP($('#actSheet')); if (!c) return;
+  const v = prompt('重命名', c.title);
+  if (v && v.trim()) { c.title = v.trim().slice(0, 40); c.named = true; c.at = Date.now(); save(); drawTop(); }
+};
+$('#actDel').onclick = () => {
+  if (busy) { alert('正在生成回复，稍后再删除'); return; }
+  const c = convs.find(x => x.id === actId); if (!c || !confirm(`删除「${c.title}」？`)) return;
+  tomb[c.id] = Date.now(); convs = convs.filter(x => x.id !== c.id);
+  if (cfg.cur === c.id) cfg.cur = convs[0] ? convs[0].id : null;
+  save(); closeP($('#actSheet')); drawTop(); draw();
+};
+function drawModel() {
+  const b = $('#mdBody'); b.textContent = '';
+  if (!apis.length) { const h = document.createElement('p'); h.className = 'hint'; h.textContent = '还没有 API，请先点「管理 API」添加。'; b.appendChild(h); }
+  const sec = (label, sel, pick, same) => {
+    const l = document.createElement('div'); l.className = 'sl'; l.textContent = label; b.appendChild(l);
+    const rows = same ? [{ id: '', t: '同聊天所选' }] : []; apis.forEach(a => rows.push({ id: a.id, t: a.name + (a.model ? ' · ' + a.model : '') }));
+    rows.forEach(r => { const x = document.createElement('button'); x.className = 'ci'; x.textContent = (sel === r.id ? '✓ ' : '　') + r.t; x.onclick = () => { pick(r.id); drawModel(); }; b.appendChild(x); });
+  };
+  sec('聊天', cfg.api || '', id => { cfg.api = id || null; save(); }, false);
+  sec('总结（复盘）', cfg.sumApi || '', id => { cfg.sumApi = id || null; save(); }, true);
+}
+$('#btnModel').onclick = () => { drawModel(); openP($('#mdSheet')); };
+$('#mdManage').onclick = () => { closeP($('#mdSheet')); setView('set'); };
+
+/* ===== 发送 ===== */
+const p2 = n => String(n).padStart(2, '0');
+const UN = { day: '天', week: '周', month: '月', year: '年' };
+function stats() {
+  const c = (ls.get('focus_settings', {}) || {}).cutoff, cut = Number.isInteger(c) && c >= 0 && c < 1440 ? c : 0;
+  const K = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, now = new Date(Date.now() - cut * 60000);
+  const off = n => K(new Date(now.getFullYear(), now.getMonth(), now.getDate() - n));
+  const days = {}, day = k => days[k] || (days[k] = { m: 0, n: 0, t: 0 });
+  const ak = ms => K(new Date(ms - cut * 60000));
+  for (const r of ls.get('focus_records', []) || []) { const ms = Date.parse(r && r.start); if (Number.isFinite(ms) && r.duration > 0) { const d = day(ak(ms)); d.m += r.duration / 60; d.n++; } }
+  const tasks = (ls.get('todo_tasks', []) || []).filter(t => t && !t.deleted);
+  for (const t of tasks) if (t.done && Number.isFinite(+t.doneAt) && t.doneAt) day(ak(+t.doneAt)).t++;
+  const today = off(0);
+  return { days, off, today, yday: off(1), ws: off((now.getDay() + 6) % 7), mo: today.slice(0, 7), open: tasks.filter(t => !t.done) };
+}
+function ctxText() {
+  const s = stats();
+  const S = f => { let m = 0, n = 0, t = 0; for (const k in s.days) if (f(k)) { m += s.days[k].m; n += s.days[k].n; t += s.days[k].t; } return `专注 ${Math.round(m)} 分钟（${n} 次），完成任务 ${t} 个`; };
+  let o = `以下是用户的专注与任务数据（来自其番茄钟与清单页），当前时间 ${new Date().toLocaleString('zh-CN')}：\n今日：${S(k => k === s.today)}\n昨日：${S(k => k === s.yday)}\n本周：${S(k => k >= s.ws)}\n本月：${S(k => k.startsWith(s.mo))}\n未完成任务共 ${s.open.length} 个`;
+  if (cfg.tier !== 'stat' && s.open.length) {
+    o += '：\n' + s.open.slice(0, 40).map(t => '- ' + t.name + (t.start ? ' 开始' + t.start.replace('T', ' ') : '') + (t.due ? ' 截止' + t.due.replace('T', ' ') : '') +
+      (t.repeat ? ` 每${t.repeat.every}${UN[t.repeat.unit] || ''}` : '') + (cfg.tier === 'note' && t.note ? ' 备注：' + String(t.note).slice(0, 80).replace(/\n/g, ' ') : '')).join('\n');
+    if (s.open.length > 40) o += `\n（另有 ${s.open.length - 40} 个未列出）`;
+  }
+  return o;
+}
+
+/* ===== 通用调用 ===== */
+const TOOL = { name: 'create_task', description: '为用户添加一个待办任务。仅在用户明确想添加任务时调用，用户会先确认。', params: { type: 'object', properties: {
+  name: { type: 'string', description: '任务名字' }, note: { type: 'string', description: '备注，可省略' },
+  start: { type: 'string', description: '开始时间，本地时间 YYYY-MM-DDTHH:MM，可省略' }, due: { type: 'string', description: '截止时间，格式同上，可省略' },
+  repeat_every: { type: 'integer', description: '循环间隔，可省略' }, repeat_unit: { type: 'string', enum: ['day', 'week', 'month', 'year'], description: '循环单位，可省略' } }, required: ['name'] } };
+async function llm(a, system, msgs, onDelta, signal, tools) {
+  const anth = a.fmt === 'anthropic';
+  const body = anth
+    ? { model: a.model, max_tokens: 4096, messages: msgs, stream: !!cfg.stream, ...(system ? { system } : {}), ...(tools ? { tools: [{ name: TOOL.name, description: TOOL.description, input_schema: TOOL.params }] } : {}) }
+    : { model: a.model, messages: (system ? [{ role: 'system', content: system }] : []).concat(msgs), stream: !!cfg.stream, ...(tools ? { tools: [{ type: 'function', function: { name: TOOL.name, description: TOOL.description, parameters: TOOL.params } }] } : {}) };
+  const r = await fetch(base(a) + (anth ? '/messages' : '/chat/completions'), { method: 'POST', headers: hdr(a), body: JSON.stringify(body), signal });
+  if (!r.ok) throw new Error(await errText(r));
+  let out = '', err = ''; const tc = {};
+  if (cfg.stream && r.body) {
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const l of lines) {
+        if (!l.startsWith('data:')) continue;
+        const d = l.slice(5).trim(); if (!d || d === '[DONE]') continue;
+        try {
+          const j = JSON.parse(d);
+          if (j.type === 'error') err = (j.error && j.error.message) || '流式错误';
+          const dl = j.choices && j.choices[0] && j.choices[0].delta;
+          if (dl && dl.tool_calls) for (const x of dl.tool_calls) { const o = tc[x.index] || (tc[x.index] = { name: '', args: '' }); if (x.function) { o.name += x.function.name || ''; o.args += x.function.arguments || ''; } }
+          if (j.type === 'content_block_start' && j.content_block && j.content_block.type === 'tool_use') tc[j.index] = { name: j.content_block.name, args: '' };
+          if (j.type === 'content_block_delta' && j.delta && j.delta.type === 'input_json_delta' && tc[j.index]) tc[j.index].args += j.delta.partial_json || '';
+          const t = j.choices ? (dl && dl.content) : (j.type === 'content_block_delta' ? j.delta && j.delta.text : '');
+          if (t) { out += t; onDelta(out); }
+        } catch {}
+      }
+    }
+  } else {
+    const j = await r.json();
+    if (anth) (j.content || []).forEach((p, i) => { if (p.type === 'tool_use') tc[i] = { name: p.name, args: JSON.stringify(p.input || {}) }; });
+    else ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.tool_calls) || []).forEach((p, i) => { tc[i] = { name: p.function && p.function.name, args: p.function && p.function.arguments }; });
+    out = anth ? (j.content || []).map(p => p.text || '').join('') : ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '');
+    onDelta(out);
+  }
+  const calls = Object.values(tc).filter(c => c.name === 'create_task').map(c => { try { return JSON.parse(c.args || '{}'); } catch { return null; } }).filter(Boolean);
+  return { text: out, err, calls };
+}
+
+/* ===== 添加任务（确认制） ===== */
+function normT(a) {
+  if (!a || typeof a.name !== 'string' || !a.name.trim()) return null;
+  const tm = v => { if (typeof v !== 'string') return null; v = v.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(v)) v += 'T00:00'; v = v.slice(0, 16); return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) && !isNaN(new Date(v)) ? v : null; };
+  const t = { name: a.name.trim().slice(0, 200), note: typeof a.note === 'string' ? a.note : '', start: tm(a.start), due: tm(a.due), repeat: null, warn: '' };
+  if (t.start && t.due && t.due < t.start) { t.due = null; t.warn = '截止早于开始，已忽略截止时间'; }
+  if (UN[a.repeat_unit]) { const e = Math.floor(+a.repeat_every || 1); t.repeat = { every: e >= 1 && e <= 999 ? e : 1, unit: a.repeat_unit }; }
+  return t;
+}
+function addTask(t) {
+  const n = Date.now(), sid = n.toString(36) + Math.random().toString(36).slice(2, 6); let L = ls.get('todo_tasks', []); if (!Array.isArray(L)) L = [];
+  L.push({ id: sid + '-0', seriesId: sid, occurrence: 0, name: t.name, note: t.note, start: t.start, due: t.due, repeat: t.repeat, ord: n, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false });
+  ls.set('todo_tasks', L);
+}
+const taskNote = x => (x.tasks || []).map(k => `\n[提议添加任务「${k.t.name}」：${k.state === 'added' ? '用户已添加' : k.state === 'ignored' ? '用户已忽略' : '待用户确认'}]`).join('');
+function card(k) {
+  const t = k.t, d = document.createElement('div'); d.className = 'card';
+  const h = (cls, x) => { const e = document.createElement('div'); e.className = cls; e.textContent = x; d.appendChild(e); };
+  h('t', t.name);
+  const m = []; if (t.start) m.push('开始 ' + t.start.replace('T', ' ')); if (t.due) m.push('截止 ' + t.due.replace('T', ' ')); if (t.repeat) m.push(`每 ${t.repeat.every} ${UN[t.repeat.unit]}`);
+  if (m.length) h('m', m.join('　')); if (t.note) h('m', '备注：' + t.note); if (t.warn) h('m er', t.warn);
+  const r = document.createElement('div'); r.className = 'row';
+  if (k.state === 'pending') {
+    const y = document.createElement('button'); y.className = 'btn primary'; y.textContent = '添加'; y.onclick = () => { addTask(t); k.state = 'added'; cur().at = Date.now(); save(); draw(); };
+    const n = document.createElement('button'); n.className = 'btn'; n.textContent = '忽略'; n.onclick = () => { k.state = 'ignored'; cur().at = Date.now(); save(); draw(); };
+    r.append(y, n);
+  } else { const sp = document.createElement('span'); sp.className = 'hint'; sp.textContent = k.state === 'added' ? '已添加到清单（打开清单页会自动同步）' : '已忽略'; r.appendChild(sp); }
+  d.appendChild(r); return d;
+}
+const netErr = e => e instanceof TypeError ? '网络错误或被跨域拦截（CORS）' : e.message;
+
+/* ===== 发送 ===== */
+async function send() {
+  if (busy) { ctl && ctl.abort(); return; }
+  const text = $('#inp').value.trim(), a = apis.find(x => x.id === cfg.api);
+  if (!text) return;
+  if (!a || !a.model) { alert('请先在设置里添加 API 并选好模型'); return; }
+  const c = cur(), nowL = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const sys = [cfg.system, cfg.ctx ? ctxText() : '', cfg.tool ? `你可以调用 create_task 为用户提议添加任务，用户确认后才会写入清单。时间用本地时间 YYYY-MM-DDTHH:MM，当前本地时间 ${nowL}。` : ''].filter(Boolean).join('\n\n');
+  const hist = c.groups.filter(x => x.a || (x.tasks && x.tasks.length)).slice(cfg.len > 0 ? -cfg.len : 0);
+  const msgs = hist.flatMap(x => [{ role: 'user', content: x.u }, { role: 'assistant', content: x.a + taskNote(x) }]).concat({ role: 'user', content: text });
+  const g = { u: text, a: '', ms: 0, ti: est(sys + msgs.map(m => m.content).join('')), to: 0, err: '', tasks: [] };
+  c.groups.push(g); c.at = Date.now(); if (c.groups.length === 1 && !c.named) c.title = text.slice(0, 20);
+  $('#inp').value = ''; $('#inp').style.height = '';
+  ctl = new AbortController(); setBusy(true); drawTop(); draw();
+  const t0 = performance.now();
+  try {
+    const res = await llm(a, sys, msgs, t => { g.a = t; if (live) { live.textContent = t; scrollTo(0, document.body.scrollHeight); } }, ctl.signal, cfg.tool);
+    g.a = res.text; if (res.err) g.err = res.err;
+    g.tasks = res.calls.map(normT).filter(Boolean).map(t => ({ t, state: 'pending' }));
+    if (!g.a && !g.err && !g.tasks.length) g.err = '没有收到内容';
+  } catch (e) { if (e.name !== 'AbortError') g.err = netErr(e); }
+  finally { g.ms = performance.now() - t0; g.to = est(g.a); c.at = Date.now(); setBusy(false); save(); draw(); }
+}
+
+/* ===== 复盘 ===== */
+let rvCtl = null;
+async function review(p) {
+  if (rvCtl) return;
+  const a = apis.find(x => x.id === cfg.sumApi) || apis.find(x => x.id === cfg.api);
+  if (!a || !a.model) { alert('请先在设置里添加 API 并选好模型'); return; }
+  const s = stats(), N = p === 'week' ? 7 : 3, name = p === 'week' ? '本周' : '今日', rows = [];
+  for (let i = N - 1; i >= 0; i--) { const k = s.off(i), d = s.days[k] || { m: 0, n: 0, t: 0 }; rows.push(`${k} 专注 ${Math.round(d.m)} 分钟（${d.n} 次），完成任务 ${d.t} 个`); }
+  const sys = `你是用户的专注与任务复盘助手。请用简洁中文总结${name}的专注与任务完成情况，指出规律与可改进之处，并给出 1 到 3 条具体建议。\n\n` + ctxText();
+  const out = $('#rvOut'), meta = $('#rvMeta'), t0 = performance.now();
+  rvCtl = new AbortController(); out.hidden = false; out.textContent = '…'; meta.textContent = ''; $('#rvStop').hidden = false;
+  document.querySelectorAll('#vRv [data-p]').forEach(b => b.disabled = true);
+  try {
+    const res = await llm(a, sys, [{ role: 'user', content: `近 ${N} 天逐日数据：\n${rows.join('\n')}\n\n请做${name}复盘。` }], t => { out.textContent = t; }, rvCtl.signal);
+    if (res.err) meta.textContent = res.err;
+    if (!res.text && !res.err) meta.textContent = '没有收到内容';
+  } catch (e) { if (e.name !== 'AbortError') meta.textContent = netErr(e); }
+  rvCtl = null; $('#rvStop').hidden = true;
+  document.querySelectorAll('#vRv [data-p]').forEach(b => b.disabled = false);
+  meta.textContent = `耗时 ${((performance.now() - t0) / 1000).toFixed(1)}s　` + meta.textContent;
+}
+document.querySelectorAll('#vRv [data-p]').forEach(b => b.onclick = () => review(b.dataset.p));
+$('#rvStop').onclick = () => rvCtl && rvCtl.abort();
+
+/* ===== 设置：API 编辑 ===== */
+let ed = null;
+function drawApis() {
+  const box = $('#apiList'); box.textContent = '';
+  apis.forEach(a => {
+    const r = document.createElement('div'); r.className = 'row';
+    const s = document.createElement('span'); s.style.flex = '1';
+    s.textContent = `${a.name} · ${FMT[a.fmt]} · ${a.model || '未选模型'}`;
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = '编辑'; b.onclick = () => openEd(a.id);
+    r.append(s, b); box.appendChild(r);
+  });
+}
+function fillEd() {
+  $('#eName').value = ed.name; $('#eFmt').value = ed.fmt; $('#eUrl').value = ed.url; $('#eKey').value = ed.key;
+  $('#eUrl').placeholder = PH[ed.fmt];
+  const M = $('#eModel'); M.textContent = '';
+  const list = ed.models.slice(); if (ed.model && !list.includes(ed.model)) list.unshift(ed.model);
+  if (!list.length) M.add(new Option('（先拉取模型）', ''));
+  list.forEach(m => M.add(new Option(m, m)));
+  M.value = ed.model || '';
+}
+function readEd() { ed.name = $('#eName').value.trim(); ed.fmt = $('#eFmt').value; ed.url = $('#eUrl').value.trim(); ed.key = $('#eKey').value.trim(); ed.model = $('#eModel').value; }
+function openEd(id) {
+  const a = id && apis.find(x => x.id === id);
+  ed = a ? { models: [], ...a } : { id: uid(), name: '', fmt: 'openai', url: '', key: '', model: '', models: [] };
+  $('#eDel').hidden = !a; $('#eMsg').textContent = ''; fillEd(); $('#ed').hidden = false;
+}
+$('#apiAdd').onclick = () => openEd(null);
+$('#eCancel').onclick = () => { $('#ed').hidden = true; };
+$('#eFmt').onchange = () => { readEd(); if (!ed.url) $('#eUrl').placeholder = PH[ed.fmt]; };
+$('#ePull').onclick = async () => {
+  readEd(); const msg = $('#eMsg');
+  if (!ed.url) ed.url = PH[ed.fmt];
+  if (!ed.key) { msg.textContent = '请先填写密钥'; return; }
+  msg.textContent = '拉取中…'; $('#ePull').disabled = true;
+  try {
+    ed.models = await fetchModels(ed);
+    if (!ed.models.includes(ed.model)) ed.model = ed.models[0] || '';
+    fillEd(); msg.textContent = `拉取到 ${ed.models.length} 个模型`;
+  } catch (e) { msg.textContent = '拉取失败：' + (e instanceof TypeError ? '网络错误或被跨域拦截（CORS）' : e.message); }
+  $('#ePull').disabled = false;
+};
+$('#eSave').onclick = () => {
+  readEd();
+  if (!ed.url) ed.url = PH[ed.fmt];
+  if (!ed.key) { $('#eMsg').textContent = '请填写密钥'; return; }
+  if (!ed.name) ed.name = 'API ' + (apis.length + 1);
+  const i = apis.findIndex(x => x.id === ed.id);
+  if (i >= 0) apis[i] = ed; else apis.push(ed);
+  if (!cfg.api) cfg.api = ed.id;
+  save(); $('#ed').hidden = true; drawApis(); drawTop();
+};
+$('#eDel').onclick = () => {
+  if (!confirm('删除这组 API？')) return;
+  apis = apis.filter(x => x.id !== ed.id);
+  if (cfg.api === ed.id) cfg.api = apis[0] ? apis[0].id : null;
+  save(); $('#ed').hidden = true; drawApis(); drawTop();
+};
+
+/* ===== 设置：对话与数据 ===== */
+$('#cStream').onchange = e => { cfg.stream = e.target.checked; save(); };
+$('#cLen').onchange = e => { const v = Math.floor(+e.target.value); cfg.len = v >= 0 ? v : 10; e.target.value = cfg.len; save(); };
+$('#cSys').onchange = e => { cfg.system = e.target.value; save(); };
+$('#btnExport').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ version: 1, conversations: convs }, null, 1)], { type: 'application/json' }));
+  const d = new Date(); a.download = `chat-data-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  $('#dataMsg').textContent = `已导出 ${convs.length} 段对话（不含 API 密钥）`;
+};
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()), arr = Array.isArray(j) ? j : j.conversations;
+    if (!Array.isArray(arr)) throw new Error('找不到 conversations 数组');
+    let n = 0;
+    for (const c of arr) {
+      if (!c || typeof c.id !== 'string' || !Array.isArray(c.groups)) continue;
+      const i = convs.findIndex(x => x.id === c.id);
+      if (i < 0) { convs.push(c); n++; } else if ((c.at || 0) > (convs[i].at || 0)) { convs[i] = c; n++; }
+    }
+    save(); drawTop(); draw(); $('#dataMsg').textContent = `导入完成，新增或更新 ${n} 段`;
+  } catch (er) { $('#dataMsg').textContent = '导入失败：' + er.message; }
+};
+
+$('#cTool').onchange = e => { cfg.tool = e.target.checked; save(); };
+$('#cCtx').onchange = e => { cfg.ctx = e.target.checked; save(); };
+$('#cTier').onchange = e => { cfg.tier = e.target.value; save(); };
+
+/* ===== 同步到仓库（chat.json，按对话合并，删除用墓碑） ===== */
+const GHP = 'chat.json', DAYMS = 864e5;
+let syncing = false, syncMsg = '', syncT = null;
+const ghc = () => { try { const t = localStorage.getItem('gh_token'), r = localStorage.getItem('gh_repo'); return t && r ? { token: t, repo: r } : null; } catch { return null; } };
+const ghF = (g, url, o = {}) => fetch(url, { method: o.method || 'GET', cache: 'no-store', body: o.body, headers: { 'Authorization': 'Bearer ' + g.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(o.headers || {}) } });
+function ghErr(res) {
+  const e = new Error(); e.status = res.status;
+  e.message = res.status === 401 ? '令牌无效或已过期' : res.status === 403 ? (res.headers.get('x-ratelimit-remaining') === '0' ? '请求过于频繁，稍后再试' : '令牌权限不足（需要该仓库的 Contents 读写）') : res.status === 404 ? '找不到仓库，请检查仓库名与令牌授权范围' : 'GitHub 返回 ' + res.status;
+  return e;
+}
+const b64e = str => { const b = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
+const b64d = x => new TextDecoder().decode(Uint8Array.from(atob(x.replace(/\s/g, '')), c => c.charCodeAt(0)));
+async function ghGet(g) {
+  const url = `https://api.github.com/repos/${g.repo}/contents/${GHP}`, res = await ghF(g, url);
+  if (res.status === 404) { const chk = await ghF(g, `https://api.github.com/repos/${g.repo}`); if (chk.ok) return { text: null, sha: null }; throw ghErr(chk); }
+  if (!res.ok) throw ghErr(res);
+  const j = await res.json();
+  if (Array.isArray(j) || j.type !== 'file') throw new Error('仓库里的 chat.json 不是文件');
+  let text;
+  if (j.size === 0) text = '';
+  else if (j.encoding === 'base64' && j.content) text = b64d(j.content);
+  else { const raw = await ghF(g, url, { headers: { 'Accept': 'application/vnd.github.raw+json' } }); if (!raw.ok) throw ghErr(raw); text = await raw.text(); }
+  return { text, sha: j.sha };
+}
+async function ghPut(g, text, sha) {
+  const body = { message: 'chat sync ' + new Date().toISOString(), content: b64e(text) }; if (sha) body.sha = sha;
+  const res = await ghF(g, `https://api.github.com/repos/${g.repo}/contents/${GHP}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+  if (res.status === 409 || res.status === 422) { const e = ghErr(res); e.conflict = true; throw e; }
+  if (!res.ok) throw ghErr(res);
+}
+function parseRemote(text) {
+  if (!text || !text.trim()) return { c: [], t: {} };
+  let j; try { j = JSON.parse(text); } catch { throw new Error('远端 chat.json 无法解析，为避免覆盖已停止同步'); }
+  const arr = Array.isArray(j) ? j : j && j.conversations;
+  if (!Array.isArray(arr)) throw new Error('远端 chat.json 里找不到 conversations');
+  return { c: arr.filter(c => c && typeof c.id === 'string' && Array.isArray(c.groups)), t: (j && !Array.isArray(j) && j.deleted && typeof j.deleted === 'object') ? j.deleted : {} };
+}
+function mergeAll(rc, rt) {
+  const t = { ...tomb }; for (const k in rt) t[k] = Math.max(t[k] || 0, +rt[k] || 0);
+  for (const k in t) if (t[k] < Date.now() - 30 * DAYMS) delete t[k];
+  const m = new Map();
+  for (const c of [...convs, ...rc]) { const ex = m.get(c.id); if (!ex || (c.at || 0) > (ex.at || 0)) m.set(c.id, c); }
+  return { list: [...m.values()].filter(c => !(t[c.id] >= (c.at || 0))).sort((a, b) => (b.at || 0) - (a.at || 0)), t };
+}
+const serial = (list, t) => '{"version":1,"conversations":[\n' + list.map(c => JSON.stringify(c)).join(',\n') + '\n],"deleted":' + JSON.stringify(t) + '}\n';
+function schedSync() { if (!cfg.sync || !ghc()) return; clearTimeout(syncT); syncT = setTimeout(() => doSync(false), 4000); }
+const showSync = () => { $('#syncMsg').textContent = syncMsg; $('#syncNow').disabled = syncing; };
+async function doSync(manual) {
+  if (syncing) return;
+  const g = ghc();
+  if (!g) { if (manual) { syncMsg = '请先在番茄钟或清单页的设置里填写仓库和令牌'; showSync(); } return; }
+  if (busy) { schedSync(); return; }
+  syncing = true; syncMsg = '同步中…'; showSync();
+  try {
+    for (let i = 0; i < 4; i++) {
+      const { text, sha } = await ghGet(g), rem = parseRemote(text), mg = mergeAll(rem.c, rem.t);
+      if (busy) { syncMsg = ''; schedSync(); return; }
+      convs = mg.list; tomb = mg.t;
+      if (!convs.some(c => c.id === cfg.cur)) cfg.cur = convs[0] ? convs[0].id : null;
+      ls.set('chat_convs', convs); ls.set('chat_tomb', tomb); ls.set('chat_cfg', cfg); drawTop(); draw();
+      const rm = new Map(rem.c.map(c => [c.id, c.at || 0])), ids = new Set(convs.map(c => c.id));
+      const need = convs.some(c => !rm.has(c.id) || rm.get(c.id) < (c.at || 0)) || rem.c.some(c => !ids.has(c.id)) || Object.keys(tomb).some(k => !(k in rem.t) || rem.t[k] < tomb[k]);
+      if (!need) { syncMsg = '已同步 ' + new Date().toTimeString().slice(0, 5); return; }
+      try { await ghPut(g, serial(convs, tomb), sha); syncMsg = '已同步 ' + new Date().toTimeString().slice(0, 5); return; }
+      catch (e) { if (e.conflict && i < 3) continue; throw e; }
+    }
+  } catch (e) { syncMsg = '同步失败：' + (e instanceof TypeError ? '网络不可用，本地数据未受影响' : e.conflict ? '写入冲突，重试多次仍失败' : e.message); }
+  finally { syncing = false; showSync(); }
+}
+$('#cSync').onchange = e => { cfg.sync = e.target.checked; save(); if (cfg.sync) doSync(true); };
+$('#syncNow').onclick = () => doSync(true);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cfg.sync) doSync(false); });
+window.addEventListener('online', () => { if (cfg.sync) doSync(false); });
+
+/* ===== 视图与事件 ===== */
+function setView(v) {
+  $('#vChat').hidden = v !== 'chat'; $('#vSet').hidden = v !== 'set'; $('#vRv').hidden = v !== 'rv'; $('#bar').hidden = v !== 'chat'; $('#lt').hidden = v !== 'chat';
+  document.querySelectorAll('.fn .tab').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  if (v === 'set') { $('#cStream').checked = cfg.stream; $('#cLen').value = cfg.len; $('#cSys').value = cfg.system; $('#cCtx').checked = cfg.ctx; $('#cTool').checked = cfg.tool; $('#cSync').checked = cfg.sync; $('#syncMsg').textContent = syncMsg; $('#cTier').value = cfg.tier; drawApis(); }
+}
+document.querySelectorAll('.fn .tab').forEach(b => b.onclick = () => setView(b.dataset.view));
+$('#tabChat').onclick = () => setView('chat');
+$('#newConv').onclick = () => {
+  if (busy || cur().groups.length === 0) return;
+  cfg.cur = null; cur(); drawTop(); draw();
+};
+$('#send').onclick = send;
+$('#inp').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } };
+$('#inp').oninput = e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight + 2, innerHeight * 0.3) + 'px'; };
+
+if (!apis.some(a => a.id === cfg.api)) cfg.api = apis[0] ? apis[0].id : null;
+drawTop(); setView('chat'); draw();
+if (cfg.sync) doSync(false);
+})();
+</script>
+</body>
+</html>
