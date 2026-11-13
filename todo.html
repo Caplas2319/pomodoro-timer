@@ -9,11 +9,13 @@
 :root{
   --bg:#f6f7f8; --fg:#1d2125; --mute:#69727c; --line:#dde1e5;
   --accent:#2f6f5e; --accent-fg:#fff; --late:#b0705f; --danger:#b3382c;
+  --ok:#2e9e6b; --bad:#d2483a; --bfg:#fff;
 }
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#14171a; --fg:#e4e7ea; --mute:#8a949e; --line:#272c31;
     --accent:#6db39e; --accent-fg:#0d1512; --late:#c9937f; --danger:#e07a6e;
+    --ok:#4cc38a; --bad:#ef7a6e; --bfg:#0d1512;
   }
 }
 *{box-sizing:border-box}
@@ -123,6 +125,18 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
 .cd.l4{background:color-mix(in srgb,var(--accent) 88%,transparent);color:var(--accent-fg)}
 .cd.today{font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .cd.sel{outline:2px solid var(--fg);outline-offset:-2px}
+.rcsel{display:flex;justify-content:center;margin:8px 0 4px}
+.rcsel select{max-width:100%;min-height:44px;font-size:15px}
+.cal-h .sm{font-size:14px}
+.rc{position:relative;display:flex;align-items:center;justify-content:center;cursor:default}
+.rc b{position:absolute;top:2px;right:3px;width:15px;height:15px;border-radius:50%;font-size:10px;line-height:15px;text-align:center;font-weight:700;font-style:normal;color:var(--bfg)}
+.rc b.ok{background:var(--ok)}
+.rc b.bad{background:var(--bad)}
+.rc b.wait{border:1.5px solid var(--mute)}
+.rc.ok{background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.rc.bad{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.legend{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin:2px 0 0}
+.lg{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 </style>
 </head>
 <body>
@@ -193,6 +207,16 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
   </div></div>
   <p class="hint" id="stSum" style="text-align:center"></p>
   <div id="chart"></div>
+  <h3 class="grp" style="margin-top:28px;text-align:center">循环任务日历</h3>
+  <p class="empty" id="rcEmpty" hidden style="text-align:center">还没有循环任务</p>
+  <div id="rcBox">
+    <div class="rcsel"><select id="rcSel" aria-label="选择循环任务"></select></div>
+    <div class="cal-h"><button id="rcPrev" aria-label="上个月">‹</button><strong id="rcTitle"></strong><button id="rcNext" aria-label="下个月">›</button><button class="sm" id="rcToday">今天</button></div>
+    <div class="cwk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+    <div class="cgrid" id="rcGrid"></div>
+    <p class="hint" id="rcSum" style="text-align:center"></p>
+    <div class="legend"><span><i class="lg" style="background:var(--ok)"></i>按时完成</span><span><i class="lg" style="background:var(--bad)"></i>过期未完成</span><span><i class="lg" style="border:1.5px solid var(--mute)"></i>已安排</span></div>
+  </div>
 </div>
 
 <div id="vCal" hidden>
@@ -257,6 +281,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
         <span id="fEveryWrap" hidden>间隔 <input id="fEvery" type="number" inputmode="numeric" min="1" max="999" step="1" value="1"></span>
       </div>
     </div>
+    <p class="hint" id="fRepHint" hidden>循环任务过了日分界点还没完成就会被销毁，不会顺延；下一次照常安排。</p>
     <p class="err" id="fErr"></p>
     <button class="danger" id="fDelete" hidden>删除任务</button>
   </div>
@@ -335,13 +360,20 @@ function normTask(r) {
     ord: typeof r.ord === 'number' && Number.isFinite(r.ord) ? r.ord : (Number.isFinite(+r.createdAt) ? +r.createdAt : upd),
     updatedAt: upd,
     deleted: !!r.deleted,
+    missed: !!r.missed,
   };
 }
 const normAll = arr => (Array.isArray(arr) ? arr : []).map(normTask).filter(Boolean);
 const expired = t => t.deleted && t.updatedAt < Date.now() - KEEP_DELETED;
 function mergeTasks(a, b) {      // 按 id 合并：只在一边有的保留；都有的留 updatedAt 较晚者
   const m = new Map();
-  for (const t of [...a, ...b]) { const ex = m.get(t.id); if (!ex || t.updatedAt > ex.updatedAt) m.set(t.id, t); }
+  for (const t of [...a, ...b]) {
+    const ex = m.get(t.id);
+    if (!ex) m.set(t.id, t);
+    else if ((ex.done && t.missed && !t.done) || (t.done && ex.missed && !ex.done)) {   // 完成优先于“过期”，避免离线打卡被覆盖
+      const w = ex.done ? ex : t; m.set(t.id, { ...w, missed: false, updatedAt: Math.max(ex.updatedAt, t.updatedAt) + 1 });
+    } else if (t.updatedAt > ex.updatedAt) m.set(t.id, t);
+  }
   return [...m.values()].filter(t => !expired(t));
 }
 function pushNeeded(remote, merged) {
@@ -370,8 +402,10 @@ if (!['add', 'start', 'due', 'done'].includes(ui.sortB)) ui.sortB = 'done';
 const newSeries = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function createTask(f) {
   const n = Date.now(), sid = newSeries();
-  tasks.push({ id: sid + '-0', seriesId: sid, occurrence: 0, name: f.name, note: f.note, start: f.start, due: f.due,
-    repeat: f.repeat, ord: n, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false });
+  let start = f.start;
+  if (f.repeat && !start && !f.due) start = dkey(attrDate(n)) + 'T00:00';      // 循环任务至少要有一个安排日期
+  tasks.push({ id: sid + '-0', seriesId: sid, occurrence: 0, name: f.name, note: f.note, start, due: f.due,
+    repeat: f.repeat, ord: n, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false, missed: false });
   commit();
 }
 function updateTask(t, f) {
@@ -387,14 +421,14 @@ function spawnNext(t, n) {        // id = seriesId-(occurrence+1)，两台设备
   else start = shift(toLocal(new Date(n)).slice(0, 10) + 'T00:00', rep);       // 没填时间：完成当天 + 间隔
   const ex = byId(id);
   if (ex) {
-    if (ex.deleted) Object.assign(ex, { ord: t.ord, deleted: false, done: false, doneAt: null, name: t.name, note: t.note, start, due, repeat: { ...rep }, updatedAt: n });
+    if (ex.deleted) Object.assign(ex, { ord: t.ord, deleted: false, missed: false, done: false, doneAt: null, name: t.name, note: t.note, start, due, repeat: { ...rep }, updatedAt: n });
     return;
   }
   tasks.push({ id, seriesId: t.seriesId, occurrence: t.occurrence + 1, name: t.name, note: t.note, start, due,
-    repeat: { ...rep }, ord: t.ord, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false });
+    repeat: { ...rep }, ord: t.ord, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false, missed: false });
 }
 function toggleDone(id) {
-  const t = byId(id); if (!t || t.deleted) return;
+  const t = byId(id); if (!t || t.deleted || t.missed) return;
   const n = Date.now();
   if (!t.done) {
     t.done = true; t.doneAt = n; t.updatedAt = n;
@@ -403,7 +437,7 @@ function toggleDone(id) {
     t.done = false; t.doneAt = null; t.updatedAt = n;
     if (t.repeat) {                // 它生成的下一次若还没完成，则标记删除
       const nx = byId(`${t.seriesId}-${t.occurrence + 1}`);
-      if (nx && !nx.deleted && !nx.done) { nx.deleted = true; nx.updatedAt = n; }
+      if (nx && !nx.deleted && !nx.done && !nx.missed) { nx.deleted = true; nx.updatedAt = n; }
     }
   }
   commit();
@@ -414,6 +448,24 @@ function toggleDone(id) {
   });
   animUntil = Date.now() + 800; clearTimeout(animTimer);
   animTimer = setTimeout(() => { animUntil = 0; doRender(); }, 800);
+}
+
+/* ========== 循环任务过期销毁：过了日分界点仍未完成 → 标记 missed（列表隐藏，日历标红），下一次照常安排 ========== */
+function rollRecurring(quiet) {
+  const today = dkey(attrDate(Date.now())), n = Date.now();
+  let changed = false;
+  for (let g = 0; g < 2000; g++) {
+    let hit = false;
+    for (const t of tasks.slice()) {
+      if (t.deleted || t.done || t.missed || !t.repeat) continue;
+      if (!t.start && !t.due) { t.start = today + 'T00:00'; t.updatedAt = n; hit = changed = true; continue; }   // 旧数据补日期
+      if ((t.due || t.start).slice(0, 10) >= today) continue;
+      t.missed = true; t.updatedAt = n; spawnNext(t, n); hit = changed = true;
+    }
+    if (!hit) break;
+  }
+  if (changed) { persist(); if (!quiet) schedSync(); }
+  return changed;
 }
 
 /* ========== 渲染 ========== */
@@ -467,7 +519,7 @@ function render() {
   doRender();
 }
 function doRender() {
-  const live = tasks.filter(t => !t.deleted);
+  const live = tasks.filter(t => !t.deleted && !t.missed);
   const A = live.filter(t => !t.done && !t.repeat), R = live.filter(t => !t.done && t.repeat), B = live.filter(t => t.done);
   $('#cntA').textContent = A.length; $('#cntR').textContent = R.length; $('#cntB').textContent = B.length;
   $('#sortA').value = ui.sortA; $('#sortB').value = ui.sortB;
@@ -501,6 +553,7 @@ function statSeries() {
   return pts.map(p => ({ ...p, v: cnt.get(p.k) || 0 }));
 }
 function renderStats() {
+  renderRC();
   document.querySelectorAll('#rangeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.r === statRange)));
   const pts = statSeries(), n = pts.length, W = 340, H = 190, L = 30, R = 12, T = 14, B = 26;
   const total = pts.reduce((a, p) => a + p.v, 0), best = pts.reduce((a, p) => p.v > a.v ? p : a, pts[0]);
@@ -565,6 +618,49 @@ $('#cutoff').onchange = e => {
   setCutoff(m ? Math.min(1439, +m[1] * 60 + +m[2]) : 0); fillCut(); doRender();
 };
 
+/* ========== 循环任务打卡日历 ========== */
+let rcSid = null, rcM = null;
+function seriesList() {
+  const m = new Map();
+  for (const t of tasks) if (!t.deleted && t.repeat) { if (!m.has(t.seriesId)) m.set(t.seriesId, []); m.get(t.seriesId).push(t); }
+  return [...m].map(([id, l]) => { l.sort((a, b) => a.occurrence - b.occurrence); return { id, list: l, name: l[l.length - 1].name, at: l[0].createdAt }; }).sort((a, b) => a.at - b.at);
+}
+const dpart = t => { const k = (t.start || t.due || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(k) ? k : null; };
+function renderRC() {
+  const S = seriesList(), has = S.length > 0;
+  $('#rcBox').hidden = !has; $('#rcEmpty').hidden = has;
+  if (!has) return;
+  if (!S.some(s => s.id === rcSid)) rcSid = S[0].id;
+  const sel = $('#rcSel'); sel.textContent = '';
+  for (const s of S) sel.add(new Option(s.name, s.id));
+  sel.value = rcSid;
+  const s = S.find(x => x.id === rcSid), t0 = attrDate(Date.now()), today = dkey(t0);
+  if (!rcM) rcM = { y: t0.getFullYear(), m: t0.getMonth() };
+  const days = new Date(rcM.y, rcM.m + 1, 0).getDate(), endK = dkey(new Date(rcM.y, rcM.m, days));
+  const st = new Map();
+  for (const t of s.list) { const k = dpart(t); if (k) st.set(k, t.done ? 'ok' : t.missed ? 'bad' : 'wait'); }
+  const last = s.list[s.list.length - 1];
+  if (!last.done && !last.missed && dpart(last)) {          // 往后推算还没生成的安排日期
+    let cur = last.start || last.due;
+    for (let i = 0; i < 5000; i++) { cur = shift(cur, last.repeat); const k = cur.slice(0, 10); if (k > endK) break; if (!st.has(k)) st.set(k, 'wait'); }
+  }
+  const off = (new Date(rcM.y, rcM.m, 1).getDay() + 6) % 7, c = { ok: 0, bad: 0, wait: 0 };
+  let h = '<span></span>'.repeat(off);
+  for (let d = 1; d <= days; d++) {
+    const k = dkey(new Date(rcM.y, rcM.m, d)), v = st.get(k);
+    if (v) c[v]++;
+    h += `<div class="cd rc${v ? ' ' + v : ''}${k === today ? ' today' : ''}">${d}${v ? `<b class="${v}">${v === 'ok' ? '✓' : v === 'bad' ? '✕' : ''}</b>` : ''}</div>`;
+  }
+  $('#rcTitle').textContent = `${rcM.y}年${rcM.m + 1}月`;
+  $('#rcGrid').innerHTML = h;
+  $('#rcSum').textContent = `本月 已完成 ${c.ok}　过期 ${c.bad}　待完成 ${c.wait}`;
+}
+const rcGo = n => { const d = new Date(rcM.y, rcM.m + n, 1); rcM = { y: d.getFullYear(), m: d.getMonth() }; renderRC(); };
+$('#rcSel').onchange = e => { rcSid = e.target.value; renderRC(); };
+$('#rcPrev').onclick = () => rcGo(-1);
+$('#rcNext').onclick = () => rcGo(1);
+$('#rcToday').onclick = () => { rcM = null; renderRC(); };
+
 /* ========== 循环任务：长按拖动排序（只在同一分组内） ========== */
 let press = null, drag = null, justDragged = false;
 function dragStart(p) {
@@ -622,11 +718,11 @@ document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, {
 let editingId = null;
 function syncRepeatUI() {
   const u = $('#fUnit').value;
-  $('#fEveryWrap').hidden = !u;
+  $('#fEveryWrap').hidden = !u; $('#fRepHint').hidden = !u;
 }
 function openForm(id) {
   const t = id ? byId(id) : null;
-  if (id && (!t || t.deleted)) return;
+  if (id && (!t || t.deleted || t.missed)) return;
   editingId = t ? t.id : null;
   $('#fTitle').textContent = t ? '编辑任务' : '新任务';
   $('#fName').value = t ? t.name : '';
@@ -781,7 +877,7 @@ async function doSync(auto) {
       let remote;
       try { remote = parseData(text); } catch { throw new Error('远端 todo.json 无法解析，为避免覆盖已停止同步'); }
       const merged = mergeTasks(tasks, remote);
-      setTasks(merged); render();
+      setTasks(merged); rollRecurring(true); render();
       if (!pushNeeded(remote, merged)) { ls.set(K.last, Date.now()); syncMsg = '已同步'; return; }
       try { await ghPut(cfg, serialize(merged), sha); ls.set(K.last, Date.now()); syncMsg = '已同步'; return; }
       catch (e) { if (e.conflict && i < 3) continue; throw e; }     // 写入冲突：重新读取、合并后重试
@@ -828,7 +924,7 @@ $('#fDelete').onclick = () => {
 document.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => { $('#' + b.dataset.clear).value = ''; });
 window.addEventListener('hashchange', () => { if (location.hash !== '#edit' && !$('#form').hidden) hideForm(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#form').hidden) closeForm(); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { render(); if (Date.now() - (ls.get(K.last, 0) || 0) > 30000) doSync(true); } });  // 刷新“已过期”提示
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { rollRecurring(); render(); if (Date.now() - (ls.get(K.last, 0) || 0) > 30000) doSync(true); } });  // 刷新“已过期”提示
 $('#btnExport').onclick = exportJson;
 $('#btnImport').onclick = () => $('#fileImport').click();
 $('#fileImport').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); };
@@ -844,7 +940,8 @@ window.addEventListener('storage', e => {
 
 /* ========== 启动 ========== */
 if (location.hash === '#edit') history.replaceState(null, '', location.pathname + location.search);
-fillGhFields(); fillCut(); renderSync(); setView('list');
+rollRecurring(); fillGhFields(); fillCut(); renderSync(); setView('list');
+setInterval(() => { if (rollRecurring()) render(); }, 60000);     // 过了日分界点自动销毁过期的循环任务
 doSync(true);                       // 打开页面时先拉取云端并合并
 })();
 </script>
