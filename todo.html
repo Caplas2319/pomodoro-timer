@@ -128,7 +128,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
 .rcsel{display:flex;justify-content:center;margin:8px 0 4px}
 .rcsel select{max-width:100%;min-height:44px;font-size:15px}
 .cal-h .sm{font-size:14px}
-.rc{position:relative;display:flex;align-items:center;justify-content:center;cursor:default}
+.rc{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;width:100%}
 .rc b{position:absolute;top:2px;right:3px;width:15px;height:15px;border-radius:50%;font-size:10px;line-height:15px;text-align:center;font-weight:700;font-style:normal;color:var(--bfg)}
 .rc b.ok{background:var(--ok)}
 .rc b.bad{background:var(--bad)}
@@ -215,7 +215,9 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
     <div class="cwk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
     <div class="cgrid" id="rcGrid"></div>
     <p class="hint" id="rcSum" style="text-align:center"></p>
-    <div class="legend"><span><i class="lg" style="background:var(--ok)"></i>按时完成</span><span><i class="lg" style="background:var(--bad)"></i>过期未完成</span><span><i class="lg" style="border:1.5px solid var(--mute)"></i>已安排</span></div>
+    <h3 class="grp" id="rcHead" style="margin-top:16px"></h3>
+    <ul id="rcList"></ul>
+    <div class="legend" style="margin-top:12px"><span><i class="lg" style="background:var(--ok)"></i>按时完成</span><span><i class="lg" style="background:var(--bad)"></i>过期未完成</span><span><i class="lg" style="border:1.5px solid var(--mute)"></i>已安排</span></div>
   </div>
 </div>
 
@@ -428,14 +430,20 @@ function spawnNext(t, n) {        // id = seriesId-(occurrence+1)，两台设备
     repeat: { ...rep }, ord: t.ord, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false, missed: false });
 }
 function toggleDone(id) {
-  const t = byId(id); if (!t || t.deleted || t.missed) return;
+  const t = byId(id); if (!t || t.deleted) return;
   const n = Date.now();
-  if (!t.done) {
+  const endK = (t.due || t.start || '').slice(0, 10), expiredNow = !!endK && endK < dkey(attrDate(n));
+  if (t.missed) {                  // 补打勾：已过期的循环任务，完成时间记在安排日当天中午
+    const p = (t.start || t.due || '').slice(0, 10).split('-').map(Number);
+    t.missed = false; t.done = true; t.updatedAt = n;
+    t.doneAt = p.length === 3 && p.every(Number.isFinite) ? new Date(p[0], p[1] - 1, p[2], 12, 0).getTime() : n;
+  } else if (!t.done) {
     t.done = true; t.doneAt = n; t.updatedAt = n;
     if (t.repeat) spawnNext(t, n);
   } else {
     t.done = false; t.doneAt = null; t.updatedAt = n;
-    if (t.repeat) {                // 它生成的下一次若还没完成，则标记删除
+    if (t.repeat && expiredNow) t.missed = true;      // 已过期的取消勾选后回到“过期”
+    else if (t.repeat) {                // 它生成的下一次若还没完成，则标记删除
       const nx = byId(`${t.seriesId}-${t.occurrence + 1}`);
       if (nx && !nx.deleted && !nx.done && !nx.missed) { nx.deleted = true; nx.updatedAt = n; }
     }
@@ -491,6 +499,7 @@ function rowEl(t) {
   body.appendChild(name);
   const parts = [];
   const late = !t.done && t.due && parseLocal(t.due) < Date.now();
+  if (t.missed) parts.push(['已过期', true]);
   if (t.start) parts.push(['开始 ' + fmtTime(t.start)]);
   if (t.due) parts.push(['截止 ' + fmtTime(t.due), late]);
   if (t.repeat) parts.push([`每 ${t.repeat.every} ${UNITS[t.repeat.unit]}`]);
@@ -619,7 +628,7 @@ $('#cutoff').onchange = e => {
 };
 
 /* ========== 循环任务打卡日历 ========== */
-let rcSid = null, rcM = null;
+let rcSid = null, rcM = null, rcDay = null;
 function seriesList() {
   const m = new Map();
   for (const t of tasks) if (!t.deleted && t.repeat) { if (!m.has(t.seriesId)) m.set(t.seriesId, []); m.get(t.seriesId).push(t); }
@@ -649,17 +658,21 @@ function renderRC() {
   for (let d = 1; d <= days; d++) {
     const k = dkey(new Date(rcM.y, rcM.m, d)), v = st.get(k);
     if (v) c[v]++;
-    h += `<div class="cd rc${v ? ' ' + v : ''}${k === today ? ' today' : ''}">${d}${v ? `<b class="${v}">${v === 'ok' ? '✓' : v === 'bad' ? '✕' : ''}</b>` : ''}</div>`;
+    h += `<button class="cd rc${v ? ' ' + v : ''}${k === today ? ' today' : ''}${k === (rcDay || today) ? ' sel' : ''}" data-k="${k}" aria-label="${k}">${d}${v ? `<b class="${v}">${v === 'ok' ? '✓' : v === 'bad' ? '✕' : ''}</b>` : ''}</button>`;
   }
   $('#rcTitle').textContent = `${rcM.y}年${rcM.m + 1}月`;
   $('#rcGrid').innerHTML = h;
   $('#rcSum').textContent = `本月 已完成 ${c.ok}　过期 ${c.bad}　待完成 ${c.wait}`;
+  const dk = rcDay || today, [y, mo, dd] = dk.split('-').map(Number), dayList = s.list.filter(t => dpart(t) === dk);
+  $('#rcHead').textContent = `${pad(mo)}-${pad(dd)} 周${'日一二三四五六'[new Date(y, mo - 1, dd).getDay()]}　${dayList.length} 项`;
+  fillList($('#rcList'), sorted(dayList, 'due'), st.get(dk) === 'wait' ? '已安排，还没到' : '这一天没有任务');
 }
 const rcGo = n => { const d = new Date(rcM.y, rcM.m + n, 1); rcM = { y: d.getFullYear(), m: d.getMonth() }; renderRC(); };
 $('#rcSel').onchange = e => { rcSid = e.target.value; renderRC(); };
 $('#rcPrev').onclick = () => rcGo(-1);
 $('#rcNext').onclick = () => rcGo(1);
-$('#rcToday').onclick = () => { rcM = null; renderRC(); };
+$('#rcToday').onclick = () => { rcM = null; rcDay = null; renderRC(); };
+$('#rcGrid').onclick = e => { const b = e.target.closest('.cd'); if (b) { rcDay = b.dataset.k; renderRC(); } };
 
 /* ========== 循环任务：长按拖动排序（只在同一分组内） ========== */
 let press = null, drag = null, justDragged = false;
@@ -906,7 +919,7 @@ $('#tabList').onclick = () => setView('list');
 $('#rangeSeg').onclick = e => { const b = e.target.closest('button'); if (b) { statRange = b.dataset.r; renderStats(); } };
 $('#sortA').onchange = e => { ui.sortA = e.target.value; ls.set(K.ui, ui); render(); };
 $('#sortB').onchange = e => { ui.sortB = e.target.value; ls.set(K.ui, ui); render(); };
-for (const id of ['#listA', '#listR1', '#listR2', '#listB', '#calList']) $(id).onclick = e => {
+for (const id of ['#listA', '#listR1', '#listR2', '#listB', '#calList', '#rcList']) $(id).onclick = e => {
   if (justDragged) return;
   const li = e.target.closest('.item'); if (!li) return;
   if (e.target.closest('.cb')) toggleDone(li.dataset.id);
