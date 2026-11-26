@@ -13,7 +13,7 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);min-height:100vh;font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif}
 header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
-header{padding-top:6px;border-bottom:1px solid var(--line)}
+header{padding-top:6px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;background:var(--bg)}
 .pg,.fn{display:flex;align-items:center}
 .tab{border:0;background:none;color:var(--mute);padding:10px 8px;min-height:48px;font-size:15px;border-bottom:2px solid transparent;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
 .fn .tab{font-size:14px;min-height:44px}
@@ -65,6 +65,29 @@ textarea{resize:vertical}
 .card .t{font-weight:600;overflow-wrap:anywhere}
 .card .m{color:var(--mute);font-size:14px;overflow-wrap:anywhere}
 .empty{color:var(--mute);text-align:center;padding:40px 0}
+#mdName{max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:10px}
+.b.u{scroll-margin-top:108px}
+.st{color:var(--mute);font-size:12px;margin-bottom:4px}
+.mt .cp{width:34px;height:30px;display:flex;align-items:center;justify-content:center;padding:0;margin-left:-8px}
+.mt.um{justify-content:flex-end;margin:-6px 0 0}
+#btnFs{margin-left:auto;margin-right:-10px}
+.b.md{white-space:normal}
+.md>:first-child{margin-top:0}.md>:last-child{margin-bottom:0}
+.md p{margin:8px 0}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:14px 0 6px;line-height:1.3}
+.md h1{font-size:1.3em}.md h2{font-size:1.2em}.md h3{font-size:1.1em}.md h4,.md h5,.md h6{font-size:1em}
+.md ul,.md ol{margin:6px 0;padding-left:1.5em}
+.md li{margin:2px 0}
+.md blockquote{margin:8px 0;padding:2px 12px;border-left:3px solid var(--line);color:var(--mute)}
+.md hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.md code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:color-mix(in srgb,var(--fg) 10%,transparent);padding:1px 5px;border-radius:4px}
+.md pre{margin:8px 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--fg) 8%,transparent);overflow-x:auto}
+.md pre code{background:none;padding:0;font-size:13px;white-space:pre}
+.md a{color:var(--accent)}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;margin:8px 0}
+.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left}
+.md th{background:color-mix(in srgb,var(--fg) 6%,transparent)}
+#toEnd{position:absolute;right:16px;top:-50px;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 </style>
 </head>
 <body>
@@ -73,6 +96,7 @@ textarea{resize:vertical}
     <a class="tab" href="index.html">番茄钟</a>
     <a class="tab" href="todo.html">清单</a>
     <button class="tab" id="tabChat" aria-current="page">对话</button>
+    <button class="ib" id="btnFs" aria-label="全屏"></button>
   </div>
   <div class="fn">
     <span class="rt">
@@ -127,13 +151,13 @@ textarea{resize:vertical}
 <div id="vRv" hidden>
   <div class="row"><button class="btn primary" data-p="today">今日复盘</button><button class="btn primary" data-p="week">本周复盘</button><button class="btn" id="rvStop" hidden>停止</button></div>
   <p class="hint">使用设置里的「总结 API」，未设置时用对话所选的 API。</p>
-  <div class="b a" id="rvOut" hidden></div>
+  <div class="b a md" id="rvOut" hidden></div>
   <div class="mt" id="rvMeta"></div>
 </div>
 </main>
 
-<div id="bar"><div>
-  <div class="tl"><button class="ib" id="btnModel" aria-label="模型选择"></button><span id="tokSum"></span></div>
+<div id="bar"><button id="toEnd" hidden aria-label="回到底部">↓</button><div>
+  <div class="tl"><span id="mdName"></span><button class="ib" id="btnModel" aria-label="模型选择"></button><span id="tokSum"></span></div>
   <div class="ibox"><textarea id="inp" rows="1" placeholder="说点什么…（Ctrl+Enter 发送）"></textarea><button class="sd" id="send"></button></div>
 </div></div>
 <div id="mask" hidden></div>
@@ -176,29 +200,134 @@ async function fetchModels(a) {
 }
 
 /* ===== 对话渲染 ===== */
-let busy = false, ctl = null, live = null;
+let busy = false, ctl = null, live = null, liveSt = null, liveG = null, tStart = 0, tmr = null;
 const bub = (cls, txt) => { const d = document.createElement('div'); d.className = 'b ' + cls; d.textContent = txt; return d; };
-function draw() {
-  const c = cur(), box = $('#msgs'); box.textContent = ''; live = null;
+const toEndBtn = $('#toEnd'), updEnd = () => { toEndBtn.hidden = document.documentElement.scrollHeight - innerHeight - scrollY < 300; };
+addEventListener('scroll', updEnd, { passive: true });
+toEndBtn.onclick = () => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function mdInl(s) {
+  const cs = [], as = [];
+  const ph = h => { as.push(h); return '\u0002' + (as.length - 1) + '\u0003'; };
+  const em = x => x
+    .replace(/\*\*(?!\s)(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^\w])__(?!\s)(.+?)__(?!\w)/g, '$1<strong>$2</strong>')
+    .replace(/~~(?!\s)(.+?)~~/g, '<del>$1</del>')
+    .replace(/\*(?!\s)([^*\n]*[^\s*])\*/g, '<em>$1</em>')
+    .replace(/(^|[^\w])_(?!\s)([^_\n]*[^\s_])_(?!\w)/g, '$1<em>$2</em>');
+  const a = (u, t) => ph(`<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
+  s = s.replace(/(`+)(.+?)\1/g, (_, b, c) => { cs.push(c); return '\u0000' + (cs.length - 1) + '\u0001'; });
+  s = esc(s)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, (_, t, u) => a(u, em(t)))
+    .replace(/(^|[\s(])(https?:\/\/[^\s<]*[^\s<.,;:!?)])/g, (_, p, u) => p + a(u, u));
+  return em(s).replace(/\u0002(\d+)\u0003/g, (_, i) => as[i]).replace(/\u0000(\d+)\u0001/g, (_, i) => '<code>' + esc(cs[i]) + '</code>');
+}
+function mdList(items) {
+  let h = '';
+  const st = [];
+  for (const it of items) {
+    const tag = it.ord ? 'ol' : 'ul';
+    while (st.length && it.ind < st[st.length - 1].ind) h += '</li></' + st.pop().tag + '>';
+    let top = st[st.length - 1];
+    if (top && it.ind === top.ind) { h += '</li>'; if (top.tag !== tag) { h += '</' + top.tag + '>'; st.pop(); top = null; } }
+    if (!top || it.ind > top.ind) { st.push({ ind: it.ind, tag }); h += '<' + tag + (it.ord && it.num !== 1 ? ` start="${it.num}"` : '') + '>'; }
+    h += '<li>' + mdInl(it.text).replace(/\n/g, '<br>');
+  }
+  while (st.length) h += '</li></' + st.pop().tag + '>';
+  return h;
+}
+function md(src) {
+  const L = String(src).replace(/\r\n?/g, '\n').split('\n'), out = [];
+  const FENCE = /^\s*(```+|~~~+)/, HEAD = /^#{1,6}\s+\S/, HR = /^\s*([-*_])(\s*\1){2,}\s*$/, QUOTE = /^\s*>/, LI = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\S.*)$/;
+  const SEP = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+  const blank = l => /^\s*$/.test(l);
+  const isLi = l => LI.test(l) && !HR.test(l);
+  const tbl = i => i + 1 < L.length && L[i].includes('|') && L[i + 1].includes('|') && SEP.test(L[i + 1]);
+  const cells = r => r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => mdInl(c.trim()));
+  const start = i => FENCE.test(L[i]) || HEAD.test(L[i]) || HR.test(L[i]) || QUOTE.test(L[i]) || isLi(L[i]) || tbl(i);
+  let i = 0;
+  while (i < L.length) {
+    const l = L[i];
+    if (blank(l)) { i++; continue; }
+    let m;
+    if ((m = FENCE.exec(l))) {
+      const close = new RegExp('^\\s*\\' + m[1][0] + '{3,}\\s*$'), ind = new RegExp('^\\s{0,' + /^\s*/.exec(l)[0].length + '}'), buf = [];
+      for (i++; i < L.length && !close.test(L[i]); i++) buf.push(L[i].replace(ind, ''));
+      i++; out.push('<pre><code>' + esc(buf.join('\n')) + '</code></pre>'); continue;
+    }
+    if (HEAD.test(l)) { const h = /^(#{1,6})\s+(.*)$/.exec(l), n = h[1].length; out.push(`<h${n}>${mdInl(h[2].replace(/\s+#+\s*$/, ''))}</h${n}>`); i++; continue; }
+    if (HR.test(l)) { out.push('<hr>'); i++; continue; }
+    if (QUOTE.test(l)) {
+      const b = [];
+      while (i < L.length && QUOTE.test(L[i])) b.push(L[i++].replace(/^\s*>\s?/, ''));
+      out.push('<blockquote>' + md(b.join('\n')) + '</blockquote>'); continue;
+    }
+    if (tbl(i)) {
+      const hd = cells(L[i]), rows = [];
+      for (i += 2; i < L.length && !blank(L[i]) && L[i].includes('|'); i++) rows.push(cells(L[i]));
+      out.push('<table><thead><tr>' + hd.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>' + rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table>'); continue;
+    }
+    if (isLi(l)) {
+      const items = [];
+      while (i < L.length) {
+        if (isLi(L[i])) { const mm = LI.exec(L[i]); items.push({ ind: mm[1].replace(/\t/g, '    ').length, ord: /\d/.test(mm[2]), num: parseInt(mm[2], 10), text: mm[3] }); i++; continue; }
+        if (blank(L[i])) {
+          let j = i; while (j < L.length && blank(L[j])) j++;
+          if (j < L.length && (isLi(L[j]) || (/^\s{2,}\S/.test(L[j]) && !FENCE.test(L[j])))) { i = j; continue; }
+          break;
+        }
+        if (/^\s{2,}\S/.test(L[i]) && !FENCE.test(L[i])) { items[items.length - 1].text += '\n' + L[i].trim(); i++; continue; }
+        break;
+      }
+      out.push(mdList(items)); continue;
+    }
+    const b = [l]; i++;
+    while (i < L.length && !blank(L[i]) && !start(i)) b.push(L[i++]);
+    out.push('<p>' + mdInl(b.join('\n')).replace(/\n/g, '<br>') + '</p>');
+  }
+  return out.join('');
+}
+let rafP = 0;
+const paint = () => { rafP = 0; if (live && liveG) { live.innerHTML = md(liveG.a); updEnd(); } };
+const updSt = () => { if (!liveSt) return; const n = Math.floor((performance.now() - tStart) / 1000); liveSt.textContent = (liveG && liveG.a ? '生成中 ' : '等待中 ') + n + 's'; };
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch {}
+  try { const x = document.createElement('textarea'); x.value = t; x.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(x); x.select(); const ok = document.execCommand('copy'); x.remove(); return ok; } catch { return false; }
+}
+function cpBtn(get) {
+  const b = document.createElement('button'); b.className = 'cp'; b.innerHTML = ICON.copy; b.setAttribute('aria-label', '复制');
+  b.onclick = async () => { const ok = await copyText(get()); if (ok) b.innerHTML = ICON.check; else b.textContent = '复制失败'; setTimeout(() => { b.innerHTML = ICON.copy; }, 1200); };
+  return b;
+}
+function draw(end) {
+  const c = cur(), box = $('#msgs'), y = scrollY; box.textContent = ''; live = null; liveSt = null;
   if (!c.groups.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = '开始一段对话吧'; box.appendChild(e); }
   c.groups.forEach((g, i) => {
     box.appendChild(bub('u', g.u));
+    { const um = document.createElement('div'); um.className = 'mt um'; um.appendChild(cpBtn(() => g.u)); box.appendChild(um); }
     const isLive = busy && i === c.groups.length - 1;
-    const a = bub('a', g.a || (isLive ? '…' : '')); if (!g.a && !isLive) a.hidden = true;
-    box.appendChild(a); if (isLive) live = a; else (g.tasks || []).forEach(k => box.appendChild(card(k)));
+    let a;
+    if (isLive) { a = bub('a md', ''); const st = document.createElement('div'); st.className = 'st'; const tx = document.createElement('div'); tx.innerHTML = md(g.a); a.append(st, tx); live = tx; liveSt = st; updSt(); }
+    else { a = bub('a md', ''); if (g.a) a.innerHTML = md(g.a); else a.hidden = true; }
+    box.appendChild(a); if (!isLive) (g.tasks || []).forEach(k => box.appendChild(card(k)));
     if (!isLive) {
       const m = document.createElement('div'); m.className = 'mt';
       const s = document.createElement('span');
       s.textContent = g.ms ? `耗时 ${(g.ms / 1000).toFixed(1)}s · 输入≈${g.ti} 输出≈${g.to} token` : '';
+      if (g.a) m.appendChild(cpBtn(() => g.a));
       m.appendChild(s);
       if (g.err) { const e = document.createElement('span'); e.className = 'er'; e.textContent = g.err; m.appendChild(e); }
       const x = document.createElement('button'); x.textContent = '删除'; x.onclick = () => { if (!busy) { c.groups.splice(i, 1); c.at = Date.now(); save(); draw(); } };
       m.appendChild(x); box.appendChild(m);
     }
   });
-  updTok(); scrollTo(0, document.body.scrollHeight);
+  updTok(); scrollTo(0, end ? document.body.scrollHeight : y); updEnd();
 }
 const ICON = {
+  fs: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  fsx: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
+  copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   menu: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
   plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   model: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>',
@@ -206,9 +335,19 @@ const ICON = {
   stop: '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>',
 };
 $('#btnDrawer').innerHTML = ICON.menu; $('#newConv').innerHTML = ICON.plus; $('#btnModel').innerHTML = ICON.model;
+const fsEl = document.documentElement, fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen, fsExit = document.exitFullscreen || document.webkitExitFullscreen;
+const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+const fsIcon = () => { $('#btnFs').innerHTML = fsOn() ? ICON.fsx : ICON.fs; $('#btnFs').setAttribute('aria-label', fsOn() ? '退出全屏' : '全屏'); };
+if (!fsReq) $('#btnFs').hidden = true;
+else {
+  fsIcon();
+  $('#btnFs').onclick = () => { try { Promise.resolve(fsOn() ? fsExit.call(document) : fsReq.call(fsEl)).catch(() => {}); } catch {} };
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(e => document.addEventListener(e, fsIcon));
+}
 const setBusy = b => { busy = b; $('#send').innerHTML = b ? ICON.stop : ICON.send; $('#send').setAttribute('aria-label', b ? '停止' : '发送'); };
 setBusy(false);
-function drawTop() { cur(); drawList(); }
+const updMd = () => { const a = apis.find(x => x.id === cfg.api); $('#mdName').textContent = a ? (a.model || '未选模型') : '未设置 API'; };
+function drawTop() { cur(); drawList(); updMd(); }
 function drawList() {
   const box = $('#convList'); box.textContent = '';
   convs.forEach(c => {
@@ -225,7 +364,7 @@ const closeP = el => { el.classList.remove('on'); if (!panels().length) $('#mask
 $('#mask').onclick = () => { const p = panels(); if (p.length) closeP(p[p.length - 1]); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { const p = panels(); if (p.length) closeP(p[p.length - 1]); } });
 $('#btnDrawer').onclick = () => { drawList(); openP($('#drawer')); };
-function switchConv(id) { if (busy) return; cfg.cur = id; save(); drawTop(); draw(); closeP($('#drawer')); }
+function switchConv(id) { if (busy) return; cfg.cur = id; save(); drawTop(); draw(true); closeP($('#drawer')); }
 let lpT = null, lpFired = false, lpXY = null, actId = null;
 const CL = $('#convList'), lpCancel = () => clearTimeout(lpT);
 function openAct(id) { const c = convs.find(x => x.id === id); if (!c) return; actId = id; $('#actTitle').textContent = c.title; openP($('#actSheet')); }
@@ -244,10 +383,10 @@ $('#actDel').onclick = () => {
   const c = convs.find(x => x.id === actId); if (!c || !confirm(`删除「${c.title}」？`)) return;
   tomb[c.id] = Date.now(); convs = convs.filter(x => x.id !== c.id);
   if (cfg.cur === c.id) cfg.cur = convs[0] ? convs[0].id : null;
-  save(); closeP($('#actSheet')); drawTop(); draw();
+  save(); closeP($('#actSheet')); drawTop(); draw(true);
 };
 function drawModel() {
-  const b = $('#mdBody'); b.textContent = '';
+  const b = $('#mdBody'); b.textContent = ''; updMd();
   if (!apis.length) { const h = document.createElement('p'); h.className = 'hint'; h.textContent = '还没有 API，请先点「管理 API」添加。'; b.appendChild(h); }
   const sec = (label, sel, pick, same) => {
     const l = document.createElement('div'); l.className = 'sl'; l.textContent = label; b.appendChild(l);
@@ -376,15 +515,16 @@ async function send() {
   const g = { u: text, a: '', ms: 0, ti: est(sys + msgs.map(m => m.content).join('')), to: 0, err: '', tasks: [] };
   c.groups.push(g); c.at = Date.now(); if (c.groups.length === 1 && !c.named) c.title = text.slice(0, 20);
   $('#inp').value = ''; $('#inp').style.height = '';
-  ctl = new AbortController(); setBusy(true); drawTop(); draw();
+  ctl = new AbortController(); liveG = g; tStart = performance.now(); setBusy(true); drawTop(); draw(); tmr = setInterval(updSt, 250);
+  { const us = document.querySelectorAll('#msgs .b.u'); us[us.length - 1].scrollIntoView({ block: 'start' }); }
   const t0 = performance.now();
   try {
-    const res = await llm(a, sys, msgs, t => { g.a = t; if (live) { live.textContent = t; scrollTo(0, document.body.scrollHeight); } }, ctl.signal, cfg.tool);
+    const res = await llm(a, sys, msgs, t => { g.a = t; if (live && !rafP) rafP = requestAnimationFrame(paint); }, ctl.signal, cfg.tool);
     g.a = res.text; if (res.err) g.err = res.err;
     g.tasks = res.calls.map(normT).filter(Boolean).map(t => ({ t, state: 'pending' }));
     if (!g.a && !g.err && !g.tasks.length) g.err = '没有收到内容';
   } catch (e) { if (e.name !== 'AbortError') g.err = netErr(e); }
-  finally { g.ms = performance.now() - t0; g.to = est(g.a); c.at = Date.now(); setBusy(false); save(); draw(); }
+  finally { clearInterval(tmr); tmr = null; liveG = null; g.ms = performance.now() - t0; g.to = est(g.a); c.at = Date.now(); setBusy(false); save(); draw(); }
 }
 
 /* ===== 复盘 ===== */
@@ -400,7 +540,7 @@ async function review(p) {
   rvCtl = new AbortController(); out.hidden = false; out.textContent = '…'; meta.textContent = ''; $('#rvStop').hidden = false;
   document.querySelectorAll('#vRv [data-p]').forEach(b => b.disabled = true);
   try {
-    const res = await llm(a, sys, [{ role: 'user', content: `近 ${N} 天逐日数据：\n${rows.join('\n')}\n\n请做${name}复盘。` }], t => { out.textContent = t; }, rvCtl.signal);
+    const res = await llm(a, sys, [{ role: 'user', content: `近 ${N} 天逐日数据：\n${rows.join('\n')}\n\n请做${name}复盘。` }], t => { out.innerHTML = md(t); }, rvCtl.signal);
     if (res.err) meta.textContent = res.err;
     if (!res.text && !res.err) meta.textContent = '没有收到内容';
   } catch (e) { if (e.name !== 'AbortError') meta.textContent = netErr(e); }
@@ -418,7 +558,7 @@ function drawApis() {
   apis.forEach(a => {
     const r = document.createElement('div'); r.className = 'row';
     const s = document.createElement('span'); s.style.flex = '1';
-    s.textContent = `${a.name} · ${FMT[a.fmt]} · ${a.model || '未选模型'}`;
+    s.textContent = a.name;
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = '编辑'; b.onclick = () => openEd(a.id);
     r.append(s, b); box.appendChild(r);
   });
@@ -592,7 +732,7 @@ $('#inp').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) 
 $('#inp').oninput = e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight + 2, innerHeight * 0.3) + 'px'; };
 
 if (!apis.some(a => a.id === cfg.api)) cfg.api = apis[0] ? apis[0].id : null;
-drawTop(); setView('chat'); draw();
+drawTop(); setView('chat'); draw(true);
 if (cfg.sync) doSync(false);
 })();
 </script>
