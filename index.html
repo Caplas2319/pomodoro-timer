@@ -4,736 +4,789 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>对话</title>
+<title>专注</title>
 <style>
-:root{--bg:#f6f7f8;--fg:#1d2125;--mute:#69727c;--line:#dde1e5;--accent:#2f6f5e;--accent-fg:#fff;--bub:#e9edef;--danger:#b3382c}
-@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e4e7ea;--mute:#8a949e;--line:#272c31;--accent:#6db39e;--accent-fg:#0d1512;--bub:#1e2327;--danger:#e07a6e}}
+:root{
+  --bg:#f6f7f8; --fg:#1d2125; --mute:#69727c; --line:#dde1e5;
+  --accent:#2f6f5e; --accent-fg:#fff; --bar:#c9d9d3; --danger:#b3382c;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#14171a; --fg:#e4e7ea; --mute:#8a949e; --line:#272c31;
+    --accent:#6db39e; --accent-fg:#0d1512; --bar:#2b4a40; --danger:#e07a6e;
+  }
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
-body{background:var(--bg);color:var(--fg);min-height:100vh;font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif}
+body{
+  background:var(--bg); color:var(--fg); min-height:100vh;
+  font:16px/1.5 system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
 header,main{max-width:640px;margin:0 auto;padding-left:20px;padding-right:20px}
-header{padding-top:6px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;background:var(--bg)}
+header{padding-top:6px;border-bottom:1px solid var(--line)}
 .pg,.fn{display:flex;align-items:center}
-.tab{border:0;background:none;color:var(--mute);padding:10px 8px;min-height:48px;font-size:15px;border-bottom:2px solid transparent;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
-.fn .tab{font-size:14px;min-height:44px}
+.fn{padding-bottom:2px}
+.fn .tab{font-size:14px;min-height:44px;padding:10px 8px}
+.fn .hs{margin-left:auto}
+a.tab{text-decoration:none;display:inline-flex;align-items:center}
+nav{display:flex;gap:4px}
+.tab{border:0;background:none;color:var(--mute);font:inherit;padding:10px 12px;min-height:48px;border-bottom:2px solid transparent;cursor:pointer}
 .tab[aria-current=page]{color:var(--fg);border-bottom-color:var(--accent)}
-main{padding-top:8px;padding-bottom:150px}
-button,input,select,textarea{font:inherit;color:inherit}
-input,select,textarea{background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:44px;width:100%}
-input[type=checkbox]{width:22px;height:22px;min-height:0}
-textarea{resize:vertical}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn{border:1px solid var(--line);background:none;border-radius:10px;padding:6px 14px;min-height:44px;font-size:15px;cursor:pointer}
+main{padding-top:8px;padding-bottom:96px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{border:1px solid var(--line);background:none;border-radius:10px;padding:10px 18px;min-height:48px}
 .btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
-.row select{width:auto;flex:1;min-width:8em}
-.hint{color:var(--mute);font-size:14px;margin:6px 0}
-.field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
-.field>span{color:var(--mute);font-size:14px}
-.set{padding:14px 0;border-bottom:1px solid var(--line)}
-.set h2{font-size:15px;margin:0 0 8px}
-.b{padding:10px 12px;border-radius:12px;background:var(--bub);margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.b.u{margin-left:15%;background:color-mix(in srgb,var(--accent) 18%,transparent)}
-.b.a{margin-right:6%}
-.mt{color:var(--mute);font-size:12px;margin:-6px 0 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.mt button{border:0;background:none;color:var(--mute);font-size:12px;padding:6px 0;cursor:pointer}
-.er{color:var(--danger)}
-#bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#bar>div{max-width:640px;margin:0 auto;padding:4px 20px 8px}
-#inp{max-height:30vh;padding-right:50px;display:block}
-.ibox{position:relative}
-.sd{position:absolute;right:6px;bottom:6px;width:34px;height:34px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;cursor:pointer}
-.ib{border:0;background:none;color:var(--fg);width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.tl{display:flex;align-items:center;margin-left:-10px;color:var(--mute);font-size:12px}
-#lt{display:flex;margin-left:auto;margin-right:-10px}
-.rt{display:flex}
-#mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20}
-#drawer,.sheet{position:fixed;z-index:21;background:var(--bg);visibility:hidden;transition:transform .2s,visibility .2s;overflow:auto}
-#drawer{top:0;bottom:0;right:0;width:min(80vw,320px);transform:translateX(100%);border-left:1px solid var(--line);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
-.sheet{left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:75vh;transform:translateY(100%);border-radius:16px 16px 0 0;border-top:1px solid var(--line);padding:0 20px calc(12px + env(safe-area-inset-bottom,0px))}
-#actSheet{min-height:45vh}
-#drawer.on,.sheet.on{transform:none;visibility:visible}
-.dh{font-weight:600;padding:16px 16px 8px}.sheet .dh{padding-left:0}
-.sl{color:var(--mute);font-size:13px;padding:10px 0 2px}
-.ci{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 16px;font-size:15px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow-wrap:anywhere}
-.sheet .ci{padding-left:0;padding-right:0}
-.ci.cur{background:color-mix(in srgb,var(--accent) 14%,transparent)}
-.ci small{display:block;color:var(--mute);font-size:12px}
-.ci.er{color:var(--danger)}
-.card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0}
-.card .t{font-weight:600;overflow-wrap:anywhere}
-.card .m{color:var(--mute);font-size:14px;overflow-wrap:anywhere}
-.empty{color:var(--mute);text-align:center;padding:40px 0}
-#mdName{max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:10px}
-.b.u{scroll-margin-top:108px}
-.st{color:var(--mute);font-size:12px;margin-bottom:4px}
-.mt .cp{width:34px;height:30px;display:flex;align-items:center;justify-content:center;padding:0;margin-left:-8px}
-.mt.um{justify-content:flex-end;margin:-6px 0 0}
-#btnFs{margin-left:auto;margin-right:-10px}
-.b.md{white-space:normal}
-.md>:first-child{margin-top:0}.md>:last-child{margin-bottom:0}
-.md p{margin:8px 0}
-.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:14px 0 6px;line-height:1.3}
-.md h1{font-size:1.3em}.md h2{font-size:1.2em}.md h3{font-size:1.1em}.md h4,.md h5,.md h6{font-size:1em}
-.md ul,.md ol{margin:6px 0;padding-left:1.5em}
-.md li{margin:2px 0}
-.md blockquote{margin:8px 0;padding:2px 12px;border-left:3px solid var(--line);color:var(--mute)}
-.md hr{border:0;border-top:1px solid var(--line);margin:12px 0}
-.md code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:color-mix(in srgb,var(--fg) 10%,transparent);padding:1px 5px;border-radius:4px}
-.md pre{margin:8px 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--fg) 8%,transparent);overflow-x:auto}
-.md pre code{background:none;padding:0;font-size:13px;white-space:pre}
-.md a{color:var(--accent)}
-.md table{border-collapse:collapse;display:block;overflow-x:auto;margin:8px 0}
-.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left}
-.md th{background:color-mix(in srgb,var(--fg) 6%,transparent)}
-#toEnd{position:absolute;right:16px;top:-50px;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.btn.small{min-height:40px;padding:6px 14px;font-size:15px}
+input[type=text],input[type=password],input[type=number],input[type=time]{
+  background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:44px;
+}
+input:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--mute);padding:8px 16px;min-height:44px}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+
+#clock{
+  font-size:clamp(64px,20vw,128px);font-weight:300;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;text-align:center;line-height:1.1;margin:10vh 0 6px;
+}
+#clock.ring{animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){#clock.ring{animation:none;color:var(--accent)}}
+#meta,#note{text-align:center;color:var(--mute);font-size:15px;min-height:1.5em;margin:0}
+#config{display:flex;flex-direction:column;align-items:center;gap:14px;margin:28px 0 8px}
+.line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+#minutes{width:6em;text-align:center}
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:24px 0 12px}
+.actions .btn{min-width:132px}
+
+.stat-head{display:flex;justify-content:center;margin:20px 0 8px}
+.srow{display:grid;grid-template-columns:5.5em 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.srow .l{color:var(--mute)}
+.srow.now .l{color:var(--fg);font-weight:600}
+.srow .bar{height:8px}
+.srow .bar i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.srow.now .bar i{background:var(--accent)}
+.srow .v{font-variant-numeric:tabular-nums;text-align:right}
+.srow .v small{color:var(--mute);margin-left:8px}
+.empty{color:var(--mute);text-align:center;padding:32px 0}
+
+.set{padding:16px 0;border-bottom:1px solid var(--line)}
+.set h2{font-size:15px;font-weight:600;margin:0 0 10px}
+.hint{color:var(--mute);font-size:14px;margin:8px 0 0}
+.field{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+.field>span{min-width:4em;color:var(--mute)}
+.field input[type=text],.field input[type=password]{flex:1;min-width:12em}
+summary{cursor:pointer;font-size:15px;font-weight:600;min-height:32px}
+details[open]>summary{margin-bottom:8px}
+#statusFile,#ghStatus{word-break:break-all}
+#reconnect{
+  position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  border:1px solid var(--line);background:var(--bg);color:var(--mute);
+  border-radius:8px;padding:6px 12px;font-size:13px;min-height:36px;
+}
+.hr{display:flex;align-items:center;gap:4px}
+.hs{border:0;background:none;color:var(--mute);font-size:12px;min-height:44px;padding:0 6px;white-space:nowrap}
+.hs.err{color:var(--danger)}
 </style>
 </head>
 <body>
 <header>
   <div class="pg">
-    <a class="tab" href="index.html">番茄钟</a>
+    <button class="tab" id="tabTimer" aria-current="page">番茄钟</button>
     <a class="tab" href="todo.html">清单</a>
-    <button class="tab" id="tabChat" aria-current="page">对话</button>
-    <button class="ib" id="btnFs" aria-label="全屏"></button>
+    <a class="tab" href="chat.html">对话</a>
   </div>
   <div class="fn">
-    <span class="rt">
-      <button class="tab" data-view="chat">对话</button>
-      <button class="tab" data-view="rv">复盘</button>
-      <button class="tab" data-view="set">设置</button>
-    </span>
-    <span id="lt"><button class="ib" id="btnDrawer" aria-label="历史对话"></button><button class="ib" id="newConv" aria-label="新对话"></button></span>
+    <nav id="nav">
+      <button class="tab" data-view="timer">番茄钟</button>
+      <button class="tab" data-view="stats">统计</button>
+      <button class="tab" data-view="settings">设置</button>
+    </nav>
+    <button class="hs" id="hdrSync" hidden></button>
   </div>
 </header>
 
 <main>
-<div id="vChat">
-  <div id="msgs"></div>
-</div>
-
-<div id="vSet" hidden>
-  <div class="set">
-    <h2>API</h2>
-    <div id="apiList"></div>
-    <button class="btn" id="apiAdd">添加 API</button>
-    <div id="ed" hidden>
-      <label class="field"><span>名称</span><input id="eName" type="text" autocomplete="off"></label>
-      <label class="field"><span>格式</span><select id="eFmt"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option></select></label>
-      <label class="field"><span>接口地址</span><input id="eUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <label class="field"><span>密钥（只存本机）</span><input id="eKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <div class="field"><span>模型</span>
-        <div class="row" style="margin:0"><select id="eModel"></select><button class="btn" id="ePull">拉取模型</button></div></div>
-      <div class="row"><button class="btn primary" id="eSave">保存</button><button class="btn" id="eCancel">取消</button><button class="btn" id="eDel">删除</button></div>
-      <p class="hint" id="eMsg"></p>
+  <section id="v-timer">
+    <div id="clock">25:00</div>
+    <p id="meta"></p>
+    <div id="config">
+      <div class="seg" id="modeSeg">
+        <button data-mode="down" aria-pressed="true">倒计时</button>
+        <button data-mode="up" aria-pressed="false">正计时</button>
+      </div>
+      <div id="downOpts" class="line" style="flex-direction:column;gap:14px">
+        <div class="line">
+          <span>时长</span>
+          <input id="minutes" type="number" inputmode="decimal" min="0.1" step="any">
+          <span>分钟</span>
+        </div>
+        <div class="line">
+          <span>完成后</span>
+          <div class="seg" id="afterSeg">
+            <button data-after="stop" aria-pressed="true">停止</button>
+            <button data-after="next" aria-pressed="false">继续下一个</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="set">
-    <h2>对话</h2>
-    <label class="row"><input type="checkbox" id="cStream"> 流式输出</label>
-    <label class="field"><span>对话长度（带入上下文的最近组数，0 为不限）</span><input id="cLen" type="number" inputmode="numeric" min="0" step="1"></label>
-    <label class="row"><input type="checkbox" id="cCtx"> 让模型看到专注与任务统计</label>
-    <label class="field"><span>任务详情</span><select id="cTier"><option value="stat">仅统计</option><option value="name">附未完成任务名</option><option value="note">附任务名和备注</option></select></label>
-    <label class="row"><input type="checkbox" id="cTool"> 允许模型提议添加任务（需你确认；部分中转站可能不支持工具）</label>
-    <label class="field"><span>系统提示（可留空）</span><textarea id="cSys" rows="3"></textarea></label>
-  </div>
-  <div class="set">
-    <h2>数据</h2>
-    <div class="row"><button class="btn" id="btnExport">导出对话 JSON</button><button class="btn" id="btnImport">导入</button><input id="fileImport" type="file" accept=".json,application/json" hidden></div>
-    <p class="hint" id="dataMsg"></p>
-    <label class="row"><input type="checkbox" id="cSync"> 自动同步对话到仓库（chat.json）</label>
-    <div class="row"><button class="btn" id="syncNow">立即同步</button></div>
-    <p class="hint" id="syncMsg"></p>
-    <p class="hint">仓库与令牌沿用番茄钟、清单页设置里填写的那组；API 密钥不会同步。</p>
-  </div>
-</div>
-<div id="vRv" hidden>
-  <div class="row"><button class="btn primary" data-p="today">今日复盘</button><button class="btn primary" data-p="week">本周复盘</button><button class="btn" id="rvStop" hidden>停止</button></div>
-  <p class="hint">使用设置里的「总结 API」，未设置时用对话所选的 API。</p>
-  <div class="b a md" id="rvOut" hidden></div>
-  <div class="mt" id="rvMeta"></div>
-</div>
+    <div class="actions">
+      <button id="btnMain" class="btn primary">开始</button>
+      <button id="btnAlert" class="btn" hidden>停止提醒</button>
+    </div>
+    <p id="note"></p>
+  </section>
+
+  <section id="v-stats" hidden>
+    <div class="stat-head">
+      <div class="seg" id="statSeg">
+        <button data-k="day" aria-pressed="true">日</button>
+        <button data-k="week" aria-pressed="false">周</button>
+        <button data-k="month" aria-pressed="false">月</button>
+        <button data-k="year" aria-pressed="false">年</button>
+      </div>
+    </div>
+    <div id="statList"></div>
+  </section>
+
+  <section id="v-settings" hidden>
+    <div class="set">
+      <h2>日分界点</h2>
+      <input id="cutoff" type="time">
+      <p class="hint">默认 00:00（即 24:00）。设为 04:00 时，凌晨 4 点前开始的专注算作前一天。按开始时间归属，不拆分；修改后无需迁移数据。</p>
+    </div>
+    <div class="set">
+      <h2>提醒</h2>
+      <label class="field"><span>闪动</span><input id="flash" type="number" inputmode="numeric" min="0" step="1" style="width:6em"> 秒（0 为不闪动）</label>
+      <label class="field"><span>声音</span><input id="sound" type="checkbox" style="width:22px;height:22px"> 到时响铃（默认关闭）</label>
+    </div>
+    <div class="set">
+      <h2>数据</h2>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="btnExport">导出 JSON</button>
+        <button class="btn small" id="btnImport">导入 JSON</button>
+        <input id="fileImport" type="file" accept=".json,application/json" hidden>
+      </div>
+      <p id="statusData" class="hint"></p>
+    </div>
+    <div class="set" id="fsSec" hidden>
+      <h2>存档文件（Edge 桌面版）</h2>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="fsChoose">选择存档文件</button>
+        <button class="btn small" id="fsDrop" hidden>断开</button>
+      </div>
+      <p id="statusFile" class="hint"></p>
+    </div>
+    <details class="set" id="gh">
+      <summary>GitHub 同步（可选）</summary>
+      <p class="hint">数据存放在数据仓库根目录的 data.json。令牌只保存在这台设备的浏览器里，每台设备各粘贴一次；令牌只需授权该仓库的 Contents 读写。</p>
+      <label class="field"><span>仓库</span><input id="ghRepo" type="text" placeholder="用户名/仓库名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="field"><span>令牌</span><input id="ghToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <div class="line" style="justify-content:flex-start">
+        <button class="btn small" id="ghSave">保存并同步</button>
+        <button class="btn small" id="ghNow">立即同步</button>
+        <button class="btn small" id="ghClear">清除</button>
+      </div>
+      <p id="ghStatus" class="hint"></p>
+    </details>
+  </section>
 </main>
 
-<div id="bar"><button id="toEnd" hidden aria-label="回到底部">↓</button><div>
-  <div class="tl"><span id="mdName"></span><button class="ib" id="btnModel" aria-label="模型选择"></button><span id="tokSum"></span></div>
-  <div class="ibox"><textarea id="inp" rows="1" placeholder="说点什么…（Ctrl+Enter 发送）"></textarea><button class="sd" id="send"></button></div>
-</div></div>
-<div id="mask" hidden></div>
-<aside id="drawer"><div class="dh">历史对话</div><div id="convList"></div></aside>
-<div class="sheet" id="mdSheet"><div class="dh">API 设置</div><div id="mdBody"></div><div class="row"><button class="btn" id="mdManage">管理 API</button></div></div>
-<div class="sheet" id="actSheet"><div class="dh" id="actTitle"></div><button class="ci" id="actRename">重命名</button><button class="ci er" id="actDel">删除</button></div>
+<button id="reconnect" hidden>重新连接存档</button>
 
 <script>
 (() => {
 'use strict';
+
+/* ========== 常量与工具 ========== */
+const P = 'focus_';
+const K = { records: P + 'records', running: P + 'running', settings: P + 'settings' };
+const SHARED = { token: 'gh_token', repo: 'gh_repo' }; // 与任务清单页共用
+const GH_PATH = 'data.json';
 const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+
 const ls = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
-};
-let apis = ls.get('chat_apis', []), convs = ls.get('chat_convs', []), tomb = ls.get('chat_tomb', {});
-let cfg = { sync: false, tool: false, sumApi: null, ctx: true, tier: 'stat', stream: true, len: 10, cur: null, api: null, system: '', ...ls.get('chat_cfg', {}) };
-const save = () => { ls.set('chat_apis', apis); ls.set('chat_convs', convs); ls.set('chat_tomb', tomb); ls.set('chat_cfg', cfg); schedSync(); };
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-const est = s => { let c = 0; for (const ch of s) if (ch > '\u2e80') c++; return c + Math.ceil((s.length - c) / 4); };
-const PH = { openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1' };
-const FMT = { openai: 'OpenAI 兼容', anthropic: 'Anthropic' };
-const cur = () => {
-  let c = convs.find(x => x.id === cfg.cur);
-  if (!c) { c = { id: uid(), title: '新对话', at: Date.now(), groups: [] }; convs.unshift(c); cfg.cur = c.id; save(); }
-  return c;
+  get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch { return def; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn('localStorage 写入失败', e); } },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+  rawGet(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  rawSet(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
 
-/* ===== API ===== */
-const base = a => a.url.trim().replace(/\/+$/, '');
-const hdr = a => a.fmt === 'anthropic'
-  ? { 'x-api-key': a.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' }
-  : { 'Authorization': 'Bearer ' + a.key, 'content-type': 'application/json' };
-const errText = async r => { let t = ''; try { t = (await r.text()).slice(0, 200); } catch {} return `HTTP ${r.status} ${t}`; };
-async function fetchModels(a) {
-  const r = await fetch(base(a) + '/models' + (a.fmt === 'anthropic' ? '?limit=1000' : ''), { headers: hdr(a) });
-  if (!r.ok) throw new Error(await errText(r));
-  const j = await r.json();
-  return (j.data || []).map(m => m.id).filter(Boolean).sort();
+function fmtClock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
+function fmtDur(s) {
+  s = Math.round(s);
+  if (s < 60) return s + '秒';
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+  return h ? `${h}小时${pad(m)}分` : `${m}分`;
+}
+const fmtMin = sec => `${+(sec / 60).toFixed(2)} 分钟`;
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const hhmm = () => new Date().toTimeString().slice(0, 5);
 
-/* ===== 对话渲染 ===== */
-let busy = false, ctl = null, live = null, liveSt = null, liveG = null, tStart = 0, tmr = null;
-const bub = (cls, txt) => { const d = document.createElement('div'); d.className = 'b ' + cls; d.textContent = txt; return d; };
-const toEndBtn = $('#toEnd'), updEnd = () => { toEndBtn.hidden = document.documentElement.scrollHeight - innerHeight - scrollY < 300; };
-addEventListener('scroll', updEnd, { passive: true });
-toEndBtn.onclick = () => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-function mdInl(s) {
-  const cs = [], as = [];
-  const ph = h => { as.push(h); return '\u0002' + (as.length - 1) + '\u0003'; };
-  const em = x => x
-    .replace(/\*\*(?!\s)(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|[^\w])__(?!\s)(.+?)__(?!\w)/g, '$1<strong>$2</strong>')
-    .replace(/~~(?!\s)(.+?)~~/g, '<del>$1</del>')
-    .replace(/\*(?!\s)([^*\n]*[^\s*])\*/g, '<em>$1</em>')
-    .replace(/(^|[^\w])_(?!\s)([^_\n]*[^\s_])_(?!\w)/g, '$1<em>$2</em>');
-  const a = (u, t) => ph(`<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
-  s = s.replace(/(`+)(.+?)\1/g, (_, b, c) => { cs.push(c); return '\u0000' + (cs.length - 1) + '\u0001'; });
-  s = esc(s)
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, (_, t, u) => a(u, em(t)))
-    .replace(/(^|[\s(])(https?:\/\/[^\s<]*[^\s<.,;:!?)])/g, (_, p, u) => p + a(u, u));
-  return em(s).replace(/\u0002(\d+)\u0003/g, (_, i) => as[i]).replace(/\u0000(\d+)\u0001/g, (_, i) => '<code>' + esc(cs[i]) + '</code>');
+/* ========== 设置 ========== */
+const DEFAULTS = { mode: 'down', minutes: 25, after: 'stop', cutoff: 0, flash: 10, sound: false };
+let settings = loadSettings();
+function loadSettings() {
+  const s = { ...DEFAULTS, ...ls.get(K.settings, {}) };
+  if (s.mode !== 'up') s.mode = 'down';
+  if (s.after !== 'next') s.after = 'stop';
+  if (!(s.minutes >= 0.1)) s.minutes = 25;
+  s.cutoff = Number.isInteger(s.cutoff) && s.cutoff >= 0 && s.cutoff < 1440 ? s.cutoff : 0;
+  if (!(s.flash >= 0)) s.flash = 10;
+  s.sound = !!s.sound;
+  return s;
 }
-function mdList(items) {
-  let h = '';
-  const st = [];
-  for (const it of items) {
-    const tag = it.ord ? 'ol' : 'ul';
-    while (st.length && it.ind < st[st.length - 1].ind) h += '</li></' + st.pop().tag + '>';
-    let top = st[st.length - 1];
-    if (top && it.ind === top.ind) { h += '</li>'; if (top.tag !== tag) { h += '</' + top.tag + '>'; st.pop(); top = null; } }
-    if (!top || it.ind > top.ind) { st.push({ ind: it.ind, tag }); h += '<' + tag + (it.ord && it.num !== 1 ? ` start="${it.num}"` : '') + '>'; }
-    h += '<li>' + mdInl(it.text).replace(/\n/g, '<br>');
+const saveSettings = () => ls.set(K.settings, settings);
+
+/* ========== 记录（唯一的数据类型）{id, start, duration} ========== */
+function normalize(arr) {
+  const out = [], seen = new Map();
+  let dropped = 0;
+  for (const r of Array.isArray(arr) ? arr : []) {
+    if (!r || typeof r !== 'object') { dropped++; continue; }
+    const id = Number(r.id), duration = Number(r.duration);
+    if (!Number.isFinite(id) || !Number.isFinite(duration) || duration < 0) { dropped++; continue; }
+    let sm = typeof r.start === 'number' ? r.start : Date.parse(r.start);
+    if (!Number.isFinite(sm)) sm = id;
+    const rec = { id, start: new Date(sm).toISOString(), duration: Math.round(duration) };
+    const ex = seen.get(id);
+    if (ex) { if (rec.duration > ex.duration) ex.duration = rec.duration; continue; }
+    seen.set(id, rec); out.push(rec);
   }
-  while (st.length) h += '</li></' + st.pop().tag + '>';
-  return h;
+  out.sort((a, b) => a.id - b.id);
+  return { list: out, dropped };
 }
-function md(src) {
-  const L = String(src).replace(/\r\n?/g, '\n').split('\n'), out = [];
-  const FENCE = /^\s*(```+|~~~+)/, HEAD = /^#{1,6}\s+\S/, HR = /^\s*([-*_])(\s*\1){2,}\s*$/, QUOTE = /^\s*>/, LI = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\S.*)$/;
-  const SEP = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
-  const blank = l => /^\s*$/.test(l);
-  const isLi = l => LI.test(l) && !HR.test(l);
-  const tbl = i => i + 1 < L.length && L[i].includes('|') && L[i + 1].includes('|') && SEP.test(L[i + 1]);
-  const cells = r => r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => mdInl(c.trim()));
-  const start = i => FENCE.test(L[i]) || HEAD.test(L[i]) || HR.test(L[i]) || QUOTE.test(L[i]) || isLi(L[i]) || tbl(i);
-  let i = 0;
-  while (i < L.length) {
-    const l = L[i];
-    if (blank(l)) { i++; continue; }
-    let m;
-    if ((m = FENCE.exec(l))) {
-      const close = new RegExp('^\\s*\\' + m[1][0] + '{3,}\\s*$'), ind = new RegExp('^\\s{0,' + /^\s*/.exec(l)[0].length + '}'), buf = [];
-      for (i++; i < L.length && !close.test(L[i]); i++) buf.push(L[i].replace(ind, ''));
-      i++; out.push('<pre><code>' + esc(buf.join('\n')) + '</code></pre>'); continue;
-    }
-    if (HEAD.test(l)) { const h = /^(#{1,6})\s+(.*)$/.exec(l), n = h[1].length; out.push(`<h${n}>${mdInl(h[2].replace(/\s+#+\s*$/, ''))}</h${n}>`); i++; continue; }
-    if (HR.test(l)) { out.push('<hr>'); i++; continue; }
-    if (QUOTE.test(l)) {
-      const b = [];
-      while (i < L.length && QUOTE.test(L[i])) b.push(L[i++].replace(/^\s*>\s?/, ''));
-      out.push('<blockquote>' + md(b.join('\n')) + '</blockquote>'); continue;
-    }
-    if (tbl(i)) {
-      const hd = cells(L[i]), rows = [];
-      for (i += 2; i < L.length && !blank(L[i]) && L[i].includes('|'); i++) rows.push(cells(L[i]));
-      out.push('<table><thead><tr>' + hd.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>' + rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table>'); continue;
-    }
-    if (isLi(l)) {
-      const items = [];
-      while (i < L.length) {
-        if (isLi(L[i])) { const mm = LI.exec(L[i]); items.push({ ind: mm[1].replace(/\t/g, '    ').length, ord: /\d/.test(mm[2]), num: parseInt(mm[2], 10), text: mm[3] }); i++; continue; }
-        if (blank(L[i])) {
-          let j = i; while (j < L.length && blank(L[j])) j++;
-          if (j < L.length && (isLi(L[j]) || (/^\s{2,}\S/.test(L[j]) && !FENCE.test(L[j])))) { i = j; continue; }
-          break;
-        }
-        if (/^\s{2,}\S/.test(L[i]) && !FENCE.test(L[i])) { items[items.length - 1].text += '\n' + L[i].trim(); i++; continue; }
-        break;
-      }
-      out.push(mdList(items)); continue;
-    }
-    const b = [l]; i++;
-    while (i < L.length && !blank(L[i]) && !start(i)) b.push(L[i++]);
-    out.push('<p>' + mdInl(b.join('\n')).replace(/\n/g, '<br>') + '</p>');
+const mergeInto = (a, b) => normalize([...a, ...b]).list;
+const mkRec = (startMs, dur) => ({ id: startMs, start: new Date(startMs).toISOString(), duration: dur });
+function pushNeeded(remote, merged) {
+  const m = new Map(remote.map(r => [r.id, r.duration]));
+  return merged.some(r => !m.has(r.id) || m.get(r.id) < r.duration);
+}
+function parseData(text) {
+  if (!text || !text.trim()) return [];
+  let j;
+  try { j = JSON.parse(text); } catch { throw new Error('内容不是有效的 JSON'); }
+  const arr = Array.isArray(j) ? j : j && j.records;
+  if (!Array.isArray(arr)) throw new Error('找不到 records 数组');
+  return normalize(arr).list;
+}
+function serialize(list) {
+  return '{"version":1,"records":[\n' + list.map(r => JSON.stringify(r)).join(',\n') + '\n]}\n';
+}
+
+let records = normalize(ls.get(K.records, [])).list;
+function setRecords(list) { records = list; ls.set(K.records, records); }
+function addRecords(arr) { setRecords(mergeInto(records, arr)); }
+
+/* ========== 计时 ========== */
+let running = ls.get(K.running, null);
+if (!(running && Number.isFinite(running.start) && (running.mode === 'up' || (running.mode === 'down' && running.target > 0)))) running = null;
+const saveRunning = () => running ? ls.set(K.running, running) : ls.del(K.running);
+
+let view = 'timer', statKind = 'day', ticker = null;
+
+function startTicker() { if (!ticker) ticker = setInterval(tick, 250); }
+function stopTicker() { clearInterval(ticker); ticker = null; }
+function note(t) { $('#note').textContent = t || ''; }
+
+function startSession() {
+  if (running) return;
+  unlockAudio(); stopAlert();
+  const now = Date.now();
+  running = settings.mode === 'down'
+    ? { start: now, mode: 'down', target: Math.round(settings.minutes * 60), after: settings.after }
+    : { start: now, mode: 'up' };
+  saveRunning();           // 开始时只写 localStorage
+  note('');
+  acquireWake(); startTicker(); render();
+}
+
+function endSession() {     // 手动结束，按实际用时计入
+  if (!running) return;
+  const now = Date.now();
+  if (advance(now)) { if (!running) return; }   // 刚好到点则先按到时处理
+  let dur = Math.floor((now - running.start) / 1000);
+  if (running.mode === 'down') dur = Math.min(dur, running.target);
+  dur = Math.max(0, dur);
+  const r = running;
+  running = null; saveRunning(); stopTicker(); releaseWake();
+  if (dur >= 1) { addRecords([mkRec(r.start, dur)]); note('已记录 ' + fmtDur(dur)); syncAll(); }
+  else note('时间太短，未记录');
+  render();
+}
+
+// 到时处理：可一次补记多个周期（页面关闭期间倒计时已走完的情况）
+function advance(now) {
+  if (!running || running.mode !== 'down') return false;
+  const done = [];
+  let lastEnd = 0;
+  while (running && now >= running.start + running.target * 1000) {
+    const end = running.start + running.target * 1000;
+    done.push(mkRec(running.start, running.target));
+    lastEnd = end;
+    running = running.after === 'next' ? { ...running, start: end } : null;
   }
-  return out.join('');
+  if (!done.length) return false;
+  addRecords(done);
+  saveRunning();
+  if (!running) { stopTicker(); releaseWake(); }
+  const total = done.reduce((s, r) => s + r.duration, 0);
+  note(done.length === 1 ? '已记录 ' + fmtDur(total) : `已记录 ${done.length} 个，共 ${fmtDur(total)}`);
+  syncAll();
+  if (now - lastEnd < 15000) startAlert();
+  render();
+  return true;
 }
-let rafP = 0;
-const paint = () => { rafP = 0; if (live && liveG) { live.innerHTML = md(liveG.a); updEnd(); } };
-const updSt = () => { if (!liveSt) return; const n = Math.floor((performance.now() - tStart) / 1000); liveSt.textContent = (liveG && liveG.a ? '生成中 ' : '等待中 ') + n + 's'; };
-async function copyText(t) {
-  try { await navigator.clipboard.writeText(t); return true; } catch {}
-  try { const x = document.createElement('textarea'); x.value = t; x.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(x); x.select(); const ok = document.execCommand('copy'); x.remove(); return ok; } catch { return false; }
-}
-function cpBtn(get) {
-  const b = document.createElement('button'); b.className = 'cp'; b.innerHTML = ICON.copy; b.setAttribute('aria-label', '复制');
-  b.onclick = async () => { const ok = await copyText(get()); if (ok) b.innerHTML = ICON.check; else b.textContent = '复制失败'; setTimeout(() => { b.innerHTML = ICON.copy; }, 1200); };
-  return b;
-}
-function draw(end) {
-  const c = cur(), box = $('#msgs'), y = scrollY; box.textContent = ''; live = null; liveSt = null;
-  if (!c.groups.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = '开始一段对话吧'; box.appendChild(e); }
-  c.groups.forEach((g, i) => {
-    box.appendChild(bub('u', g.u));
-    { const um = document.createElement('div'); um.className = 'mt um'; um.appendChild(cpBtn(() => g.u)); box.appendChild(um); }
-    const isLive = busy && i === c.groups.length - 1;
-    let a;
-    if (isLive) { a = bub('a md', ''); const st = document.createElement('div'); st.className = 'st'; const tx = document.createElement('div'); tx.innerHTML = md(g.a); a.append(st, tx); live = tx; liveSt = st; updSt(); }
-    else { a = bub('a md', ''); if (g.a) a.innerHTML = md(g.a); else a.hidden = true; }
-    box.appendChild(a); if (!isLive) (g.tasks || []).forEach(k => box.appendChild(card(k)));
-    if (!isLive) {
-      const m = document.createElement('div'); m.className = 'mt';
-      const s = document.createElement('span');
-      s.textContent = g.ms ? `耗时 ${(g.ms / 1000).toFixed(1)}s · 输入≈${g.ti} 输出≈${g.to} token` : '';
-      if (g.a) m.appendChild(cpBtn(() => g.a));
-      m.appendChild(s);
-      if (g.err) { const e = document.createElement('span'); e.className = 'er'; e.textContent = g.err; m.appendChild(e); }
-      const x = document.createElement('button'); x.textContent = '删除'; x.onclick = () => { if (!busy) { c.groups.splice(i, 1); c.at = Date.now(); save(); draw(); } };
-      m.appendChild(x); box.appendChild(m);
-    }
-  });
-  updTok(); scrollTo(0, end ? document.body.scrollHeight : y); updEnd();
-}
-const ICON = {
-  fs: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
-  fsx: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
-  copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
-  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-  menu: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
-  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-  model: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>',
-  send: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg>',
-  stop: '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>',
-};
-$('#btnDrawer').innerHTML = ICON.menu; $('#newConv').innerHTML = ICON.plus; $('#btnModel').innerHTML = ICON.model;
-const fsEl = document.documentElement, fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen, fsExit = document.exitFullscreen || document.webkitExitFullscreen;
-const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
-const fsIcon = () => { $('#btnFs').innerHTML = fsOn() ? ICON.fsx : ICON.fs; $('#btnFs').setAttribute('aria-label', fsOn() ? '退出全屏' : '全屏'); };
-if (!fsReq) $('#btnFs').hidden = true;
-else {
-  fsIcon();
-  $('#btnFs').onclick = () => { try { Promise.resolve(fsOn() ? fsExit.call(document) : fsReq.call(fsEl)).catch(() => {}); } catch {} };
-  ['fullscreenchange', 'webkitfullscreenchange'].forEach(e => document.addEventListener(e, fsIcon));
-}
-const setBusy = b => { busy = b; $('#send').innerHTML = b ? ICON.stop : ICON.send; $('#send').setAttribute('aria-label', b ? '停止' : '发送'); };
-setBusy(false);
-const updMd = () => { const a = apis.find(x => x.id === cfg.api); $('#mdName').textContent = a ? (a.model || '未选模型') : '未设置 API'; };
-function drawTop() { cur(); drawList(); updMd(); }
-function drawList() {
-  const box = $('#convList'); box.textContent = '';
-  convs.forEach(c => {
-    const b = document.createElement('button'); b.className = 'ci' + (c.id === cfg.cur ? ' cur' : ''); b.dataset.id = c.id; b.textContent = c.title;
-    const sm = document.createElement('small'), d = new Date(c.at || 0);
-    sm.textContent = `${d.getMonth() + 1}-${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} · ${c.groups.length} 组`;
-    b.appendChild(sm); box.appendChild(b);
-  });
-}
-function updTok() { let n = 0; for (const g of cur().groups) n += (g.ti || 0) + (g.to || 0); $('#tokSum').textContent = n ? `总≈${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n} token` : ''; }
-const panels = () => [...document.querySelectorAll('#drawer.on,.sheet.on')];
-const openP = el => { el.classList.add('on'); $('#mask').hidden = false; };
-const closeP = el => { el.classList.remove('on'); if (!panels().length) $('#mask').hidden = true; };
-$('#mask').onclick = () => { const p = panels(); if (p.length) closeP(p[p.length - 1]); };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { const p = panels(); if (p.length) closeP(p[p.length - 1]); } });
-$('#btnDrawer').onclick = () => { drawList(); openP($('#drawer')); };
-function switchConv(id) { if (busy) return; cfg.cur = id; save(); drawTop(); draw(true); closeP($('#drawer')); }
-let lpT = null, lpFired = false, lpXY = null, actId = null;
-const CL = $('#convList'), lpCancel = () => clearTimeout(lpT);
-function openAct(id) { const c = convs.find(x => x.id === id); if (!c) return; actId = id; $('#actTitle').textContent = c.title; openP($('#actSheet')); }
-CL.addEventListener('pointerdown', e => { const b = e.target.closest('.ci'); if (!b) return; lpFired = false; lpXY = [e.clientX, e.clientY]; lpT = setTimeout(() => { lpFired = true; openAct(b.dataset.id); }, 500); });
-CL.addEventListener('pointermove', e => { if (lpXY && Math.hypot(e.clientX - lpXY[0], e.clientY - lpXY[1]) > 8) lpCancel(); });
-['pointerup', 'pointercancel', 'pointerleave'].forEach(t => CL.addEventListener(t, lpCancel));
-CL.addEventListener('contextmenu', e => { e.preventDefault(); const b = e.target.closest('.ci'); if (b) { lpCancel(); lpFired = true; openAct(b.dataset.id); } });
-CL.addEventListener('click', e => { const b = e.target.closest('.ci'); if (!b) return; if (lpFired) { lpFired = false; return; } switchConv(b.dataset.id); });
-$('#actRename').onclick = () => {
-  const c = convs.find(x => x.id === actId); closeP($('#actSheet')); if (!c) return;
-  const v = prompt('重命名', c.title);
-  if (v && v.trim()) { c.title = v.trim().slice(0, 40); c.named = true; c.at = Date.now(); save(); drawTop(); }
-};
-$('#actDel').onclick = () => {
-  if (busy) { alert('正在生成回复，稍后再删除'); return; }
-  const c = convs.find(x => x.id === actId); if (!c || !confirm(`删除「${c.title}」？`)) return;
-  tomb[c.id] = Date.now(); convs = convs.filter(x => x.id !== c.id);
-  if (cfg.cur === c.id) cfg.cur = convs[0] ? convs[0].id : null;
-  save(); closeP($('#actSheet')); drawTop(); draw(true);
-};
-function drawModel() {
-  const b = $('#mdBody'); b.textContent = ''; updMd();
-  if (!apis.length) { const h = document.createElement('p'); h.className = 'hint'; h.textContent = '还没有 API，请先点「管理 API」添加。'; b.appendChild(h); }
-  const sec = (label, sel, pick, same) => {
-    const l = document.createElement('div'); l.className = 'sl'; l.textContent = label; b.appendChild(l);
-    const rows = same ? [{ id: '', t: '同聊天所选' }] : []; apis.forEach(a => rows.push({ id: a.id, t: a.name + (a.model ? ' · ' + a.model : '') }));
-    rows.forEach(r => { const x = document.createElement('button'); x.className = 'ci'; x.textContent = (sel === r.id ? '✓ ' : '　') + r.t; x.onclick = () => { pick(r.id); drawModel(); }; b.appendChild(x); });
-  };
-  sec('聊天', cfg.api || '', id => { cfg.api = id || null; save(); }, false);
-  sec('总结（复盘）', cfg.sumApi || '', id => { cfg.sumApi = id || null; save(); }, true);
-}
-$('#btnModel').onclick = () => { drawModel(); openP($('#mdSheet')); };
-$('#mdManage').onclick = () => { closeP($('#mdSheet')); setView('set'); };
 
-/* ===== 发送 ===== */
-const p2 = n => String(n).padStart(2, '0');
-const UN = { day: '天', week: '周', month: '月', year: '年' };
-function stats() {
-  const c = (ls.get('focus_settings', {}) || {}).cutoff, cut = Number.isInteger(c) && c >= 0 && c < 1440 ? c : 0;
-  const K = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`, now = new Date(Date.now() - cut * 60000);
-  const off = n => K(new Date(now.getFullYear(), now.getMonth(), now.getDate() - n));
-  const days = {}, day = k => days[k] || (days[k] = { m: 0, n: 0, t: 0 });
-  const ak = ms => K(new Date(ms - cut * 60000));
-  for (const r of ls.get('focus_records', []) || []) { const ms = Date.parse(r && r.start); if (Number.isFinite(ms) && r.duration > 0) { const d = day(ak(ms)); d.m += r.duration / 60; d.n++; } }
-  const tasks = (ls.get('todo_tasks', []) || []).filter(t => t && !t.deleted);
-  for (const t of tasks) if (t.done && Number.isFinite(+t.doneAt) && t.doneAt) day(ak(+t.doneAt)).t++;
-  const today = off(0);
-  return { days, off, today, yday: off(1), ws: off((now.getDay() + 6) % 7), mo: today.slice(0, 7), open: tasks.filter(t => !t.done) };
-}
-function ctxText() {
-  const s = stats();
-  const S = f => { let m = 0, n = 0, t = 0; for (const k in s.days) if (f(k)) { m += s.days[k].m; n += s.days[k].n; t += s.days[k].t; } return `专注 ${Math.round(m)} 分钟（${n} 次），完成任务 ${t} 个`; };
-  let o = `以下是用户的专注与任务数据（来自其番茄钟与清单页），当前时间 ${new Date().toLocaleString('zh-CN')}：\n今日：${S(k => k === s.today)}\n昨日：${S(k => k === s.yday)}\n本周：${S(k => k >= s.ws)}\n本月：${S(k => k.startsWith(s.mo))}\n未完成任务共 ${s.open.length} 个`;
-  if (cfg.tier !== 'stat' && s.open.length) {
-    o += '：\n' + s.open.slice(0, 40).map(t => '- ' + t.name + (t.start ? ' 开始' + t.start.replace('T', ' ') : '') + (t.due ? ' 截止' + t.due.replace('T', ' ') : '') +
-      (t.repeat ? ` 每${t.repeat.every}${UN[t.repeat.unit] || ''}` : '') + (cfg.tier === 'note' && t.note ? ' 备注：' + String(t.note).slice(0, 80).replace(/\n/g, ' ') : '')).join('\n');
-    if (s.open.length > 40) o += `\n（另有 ${s.open.length - 40} 个未列出）`;
+function clockSeconds(now) {
+  if (running) {
+    const el = Math.max(0, now - running.start);
+    return running.mode === 'down' ? Math.max(0, Math.ceil((running.target * 1000 - el) / 1000)) : Math.floor(el / 1000);
   }
-  return o;
+  return settings.mode === 'down' ? Math.round(settings.minutes * 60) : 0;
+}
+function tick() { advance(Date.now()); renderClock(); }
+function renderClock() {
+  const t = fmtClock(clockSeconds(Date.now()));
+  $('#clock').textContent = t;
+  if (!alertOn) document.title = running ? `${t} · 专注` : '专注';
 }
 
-/* ===== 通用调用 ===== */
-const TOOL = { name: 'create_task', description: '为用户添加一个待办任务。仅在用户明确想添加任务时调用，用户会先确认。', params: { type: 'object', properties: {
-  name: { type: 'string', description: '任务名字' }, note: { type: 'string', description: '备注，可省略' },
-  start: { type: 'string', description: '开始时间，本地时间 YYYY-MM-DDTHH:MM，可省略' }, due: { type: 'string', description: '截止时间，格式同上，可省略' },
-  repeat_every: { type: 'integer', description: '循环间隔，可省略' }, repeat_unit: { type: 'string', enum: ['day', 'week', 'month', 'year'], description: '循环单位，可省略' } }, required: ['name'] } };
-async function llm(a, system, msgs, onDelta, signal, tools) {
-  const anth = a.fmt === 'anthropic';
-  const body = anth
-    ? { model: a.model, max_tokens: 4096, messages: msgs, stream: !!cfg.stream, ...(system ? { system } : {}), ...(tools ? { tools: [{ name: TOOL.name, description: TOOL.description, input_schema: TOOL.params }] } : {}) }
-    : { model: a.model, messages: (system ? [{ role: 'system', content: system }] : []).concat(msgs), stream: !!cfg.stream, ...(tools ? { tools: [{ type: 'function', function: { name: TOOL.name, description: TOOL.description, parameters: TOOL.params } }] } : {}) };
-  const r = await fetch(base(a) + (anth ? '/messages' : '/chat/completions'), { method: 'POST', headers: hdr(a), body: JSON.stringify(body), signal });
-  if (!r.ok) throw new Error(await errText(r));
-  let out = '', err = ''; const tc = {};
-  if (cfg.stream && r.body) {
-    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
-    for (;;) {
-      const { done, value } = await rd.read(); if (done) break;
-      buf += dec.decode(value, { stream: true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const l of lines) {
-        if (!l.startsWith('data:')) continue;
-        const d = l.slice(5).trim(); if (!d || d === '[DONE]') continue;
-        try {
-          const j = JSON.parse(d);
-          if (j.type === 'error') err = (j.error && j.error.message) || '流式错误';
-          const dl = j.choices && j.choices[0] && j.choices[0].delta;
-          if (dl && dl.tool_calls) for (const x of dl.tool_calls) { const o = tc[x.index] || (tc[x.index] = { name: '', args: '' }); if (x.function) { o.name += x.function.name || ''; o.args += x.function.arguments || ''; } }
-          if (j.type === 'content_block_start' && j.content_block && j.content_block.type === 'tool_use') tc[j.index] = { name: j.content_block.name, args: '' };
-          if (j.type === 'content_block_delta' && j.delta && j.delta.type === 'input_json_delta' && tc[j.index]) tc[j.index].args += j.delta.partial_json || '';
-          const t = j.choices ? (dl && dl.content) : (j.type === 'content_block_delta' ? j.delta && j.delta.text : '');
-          if (t) { out += t; onDelta(out); }
-        } catch {}
-      }
-    }
-  } else {
-    const j = await r.json();
-    if (anth) (j.content || []).forEach((p, i) => { if (p.type === 'tool_use') tc[i] = { name: p.name, args: JSON.stringify(p.input || {}) }; });
-    else ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.tool_calls) || []).forEach((p, i) => { tc[i] = { name: p.function && p.function.name, args: p.function && p.function.arguments }; });
-    out = anth ? (j.content || []).map(p => p.text || '').join('') : ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '');
-    onDelta(out);
-  }
-  const calls = Object.values(tc).filter(c => c.name === 'create_task').map(c => { try { return JSON.parse(c.args || '{}'); } catch { return null; } }).filter(Boolean);
-  return { text: out, err, calls };
-}
-
-/* ===== 添加任务（确认制） ===== */
-function normT(a) {
-  if (!a || typeof a.name !== 'string' || !a.name.trim()) return null;
-  const tm = v => { if (typeof v !== 'string') return null; v = v.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(v)) v += 'T00:00'; v = v.slice(0, 16); return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) && !isNaN(new Date(v)) ? v : null; };
-  const t = { name: a.name.trim().slice(0, 200), note: typeof a.note === 'string' ? a.note : '', start: tm(a.start), due: tm(a.due), repeat: null, warn: '' };
-  if (t.start && t.due && t.due < t.start) { t.due = null; t.warn = '截止早于开始，已忽略截止时间'; }
-  if (UN[a.repeat_unit]) { const e = Math.floor(+a.repeat_every || 1); t.repeat = { every: e >= 1 && e <= 999 ? e : 1, unit: a.repeat_unit }; }
-  return t;
-}
-function addTask(t) {
-  const n = Date.now(), sid = n.toString(36) + Math.random().toString(36).slice(2, 6); let L = ls.get('todo_tasks', []); if (!Array.isArray(L)) L = [];
-  L.push({ id: sid + '-0', seriesId: sid, occurrence: 0, name: t.name, note: t.note, start: t.start, due: t.due, repeat: t.repeat, ord: n, done: false, doneAt: null, createdAt: n, updatedAt: n, deleted: false });
-  ls.set('todo_tasks', L);
-}
-const taskNote = x => (x.tasks || []).map(k => `\n[提议添加任务「${k.t.name}」：${k.state === 'added' ? '用户已添加' : k.state === 'ignored' ? '用户已忽略' : '待用户确认'}]`).join('');
-function card(k) {
-  const t = k.t, d = document.createElement('div'); d.className = 'card';
-  const h = (cls, x) => { const e = document.createElement('div'); e.className = cls; e.textContent = x; d.appendChild(e); };
-  h('t', t.name);
-  const m = []; if (t.start) m.push('开始 ' + t.start.replace('T', ' ')); if (t.due) m.push('截止 ' + t.due.replace('T', ' ')); if (t.repeat) m.push(`每 ${t.repeat.every} ${UN[t.repeat.unit]}`);
-  if (m.length) h('m', m.join('　')); if (t.note) h('m', '备注：' + t.note); if (t.warn) h('m er', t.warn);
-  const r = document.createElement('div'); r.className = 'row';
-  if (k.state === 'pending') {
-    const y = document.createElement('button'); y.className = 'btn primary'; y.textContent = '添加'; y.onclick = () => { addTask(t); k.state = 'added'; cur().at = Date.now(); save(); draw(); };
-    const n = document.createElement('button'); n.className = 'btn'; n.textContent = '忽略'; n.onclick = () => { k.state = 'ignored'; cur().at = Date.now(); save(); draw(); };
-    r.append(y, n);
-  } else { const sp = document.createElement('span'); sp.className = 'hint'; sp.textContent = k.state === 'added' ? '已添加到清单（打开清单页会自动同步）' : '已忽略'; r.appendChild(sp); }
-  d.appendChild(r); return d;
-}
-const netErr = e => e instanceof TypeError ? '网络错误或被跨域拦截（CORS）' : e.message;
-
-/* ===== 发送 ===== */
-async function send() {
-  if (busy) { ctl && ctl.abort(); return; }
-  const text = $('#inp').value.trim(), a = apis.find(x => x.id === cfg.api);
-  if (!text) return;
-  if (!a || !a.model) { alert('请先在设置里添加 API 并选好模型'); return; }
-  const c = cur(), nowL = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const sys = [cfg.system, cfg.ctx ? ctxText() : '', cfg.tool ? `你可以调用 create_task 为用户提议添加任务，用户确认后才会写入清单。时间用本地时间 YYYY-MM-DDTHH:MM，当前本地时间 ${nowL}。` : ''].filter(Boolean).join('\n\n');
-  const hist = c.groups.filter(x => x.a || (x.tasks && x.tasks.length)).slice(cfg.len > 0 ? -cfg.len : 0);
-  const msgs = hist.flatMap(x => [{ role: 'user', content: x.u }, { role: 'assistant', content: x.a + taskNote(x) }]).concat({ role: 'user', content: text });
-  const g = { u: text, a: '', ms: 0, ti: est(sys + msgs.map(m => m.content).join('')), to: 0, err: '', tasks: [] };
-  c.groups.push(g); c.at = Date.now(); if (c.groups.length === 1 && !c.named) c.title = text.slice(0, 20);
-  $('#inp').value = ''; $('#inp').style.height = '';
-  ctl = new AbortController(); liveG = g; tStart = performance.now(); setBusy(true); drawTop(); draw(); tmr = setInterval(updSt, 250);
-  { const us = document.querySelectorAll('#msgs .b.u'); us[us.length - 1].scrollIntoView({ block: 'start' }); }
-  const t0 = performance.now();
+/* ========== 提醒：标题栏闪动 + 可选声音 ========== */
+let alertOn = false, alertTimer = null, audioCtx = null;
+function unlockAudio() {
+  if (!settings.sound) return;
   try {
-    const res = await llm(a, sys, msgs, t => { g.a = t; if (live && !rafP) rafP = requestAnimationFrame(paint); }, ctl.signal, cfg.tool);
-    g.a = res.text; if (res.err) g.err = res.err;
-    g.tasks = res.calls.map(normT).filter(Boolean).map(t => ({ t, state: 'pending' }));
-    if (!g.a && !g.err && !g.tasks.length) g.err = '没有收到内容';
-  } catch (e) { if (e.name !== 'AbortError') g.err = netErr(e); }
-  finally { clearInterval(tmr); tmr = null; liveG = null; g.ms = performance.now() - t0; g.to = est(g.a); c.at = Date.now(); setBusy(false); save(); draw(); }
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch {}
 }
-
-/* ===== 复盘 ===== */
-let rvCtl = null;
-async function review(p) {
-  if (rvCtl) return;
-  const a = apis.find(x => x.id === cfg.sumApi) || apis.find(x => x.id === cfg.api);
-  if (!a || !a.model) { alert('请先在设置里添加 API 并选好模型'); return; }
-  const s = stats(), N = p === 'week' ? 7 : 3, name = p === 'week' ? '本周' : '今日', rows = [];
-  for (let i = N - 1; i >= 0; i--) { const k = s.off(i), d = s.days[k] || { m: 0, n: 0, t: 0 }; rows.push(`${k} 专注 ${Math.round(d.m)} 分钟（${d.n} 次），完成任务 ${d.t} 个`); }
-  const sys = `你是用户的专注与任务复盘助手。请用简洁中文总结${name}的专注与任务完成情况，指出规律与可改进之处，并给出 1 到 3 条具体建议。\n\n` + ctxText();
-  const out = $('#rvOut'), meta = $('#rvMeta'), t0 = performance.now();
-  rvCtl = new AbortController(); out.hidden = false; out.textContent = '…'; meta.textContent = ''; $('#rvStop').hidden = false;
-  document.querySelectorAll('#vRv [data-p]').forEach(b => b.disabled = true);
+function beep() {
+  if (!settings.sound || !audioCtx) return;
   try {
-    const res = await llm(a, sys, [{ role: 'user', content: `近 ${N} 天逐日数据：\n${rows.join('\n')}\n\n请做${name}复盘。` }], t => { out.innerHTML = md(t); }, rvCtl.signal);
-    if (res.err) meta.textContent = res.err;
-    if (!res.text && !res.err) meta.textContent = '没有收到内容';
-  } catch (e) { if (e.name !== 'AbortError') meta.textContent = netErr(e); }
-  rvCtl = null; $('#rvStop').hidden = true;
-  document.querySelectorAll('#vRv [data-p]').forEach(b => b.disabled = false);
-  meta.textContent = `耗时 ${((performance.now() - t0) / 1000).toFixed(1)}s　` + meta.textContent;
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.25, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + 0.55);
+  } catch {}
 }
-document.querySelectorAll('#vRv [data-p]').forEach(b => b.onclick = () => review(b.dataset.p));
-$('#rvStop').onclick = () => rvCtl && rvCtl.abort();
+function startAlert() {
+  stopAlert();
+  beep();
+  if (!(settings.flash > 0)) return;
+  const until = Date.now() + settings.flash * 1000;
+  alertOn = true; let n = 0;
+  document.title = '⏰ 时间到';
+  alertTimer = setInterval(() => {
+    if (Date.now() >= until) { stopAlert(); return; }
+    n++;
+    document.title = n % 2 ? '专注' : '⏰ 时间到';
+    if (n % 2 === 0) beep();
+  }, 600);
+  $('#clock').classList.add('ring'); $('#btnAlert').hidden = false;
+}
+function stopAlert() {
+  clearInterval(alertTimer); alertTimer = null;
+  const was = alertOn; alertOn = false;
+  $('#clock').classList.remove('ring'); $('#btnAlert').hidden = true;
+  if (was) renderClock();
+}
 
-/* ===== 设置：API 编辑 ===== */
-let ed = null;
-function drawApis() {
-  const box = $('#apiList'); box.textContent = '';
-  apis.forEach(a => {
-    const r = document.createElement('div'); r.className = 'row';
-    const s = document.createElement('span'); s.style.flex = '1';
-    s.textContent = a.name;
-    const b = document.createElement('button'); b.className = 'btn'; b.textContent = '编辑'; b.onclick = () => openEd(a.id);
-    r.append(s, b); box.appendChild(r);
+/* ========== Screen Wake Lock ========== */
+let wake = null;
+async function acquireWake() {
+  if (!running || wake || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try {
+    const w = await navigator.wakeLock.request('screen');
+    w.addEventListener('release', () => { if (wake === w) wake = null; });
+    wake = w;
+    if (!running) releaseWake();
+  } catch { wake = null; }
+}
+function releaseWake() { if (wake) { const w = wake; wake = null; w.release().catch(() => {}); } }
+
+/* ========== 统计（全部由 records 现算） ========== */
+function attrDate(ms) {   // 归属日 = 开始时间 − 分界点
+  const d = new Date(ms - settings.cutoff * 60000);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function weekStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7); }
+function bucketKey(kind, d) {
+  if (kind === 'day') return fmtDate(d);
+  if (kind === 'week') return fmtDate(weekStart(d));
+  if (kind === 'month') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  return String(d.getFullYear());
+}
+function periods(kind) {
+  const t = attrDate(Date.now()), out = [];
+  if (kind === 'day') for (let i = 0; i < 14; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i);
+    out.push({ key: fmtDate(d), label: i === 0 ? '今天' : i === 1 ? '昨天' : `${pad(d.getMonth() + 1)}-${pad(d.getDate())} 周${'日一二三四五六'[d.getDay()]}` });
+  }
+  else if (kind === 'week') { const ws = weekStart(t); for (let i = 0; i < 12; i++) {
+    const d = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * i);
+    out.push({ key: fmtDate(d), label: i === 0 ? '本周' : `${pad(d.getMonth() + 1)}-${pad(d.getDate())} 起` });
+  } }
+  else if (kind === 'month') for (let i = 0; i < 12; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+    out.push({ key: bucketKey('month', d), label: i === 0 ? '本月' : `${d.getFullYear()}-${pad(d.getMonth() + 1)}` });
+  }
+  else for (let i = 0; i < 5; i++) {
+    const y = t.getFullYear() - i;
+    out.push({ key: String(y), label: i === 0 ? '今年' : String(y) });
+  }
+  return out;
+}
+function renderStats() {
+  const box = $('#statList');
+  box.textContent = '';
+  if (!records.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '还没有记录。完成一次专注后会显示在这里。'; box.appendChild(p); return; }
+  const buckets = new Map();
+  for (const r of records) {
+    let ms = Date.parse(r.start); if (Number.isNaN(ms)) ms = r.id;
+    const k = bucketKey(statKind, attrDate(ms));
+    const b = buckets.get(k) || { sec: 0, n: 0 };
+    b.sec += r.duration; b.n++; buckets.set(k, b);
+  }
+  const rows = periods(statKind).map(p => ({ ...p, ...(buckets.get(p.key) || { sec: 0, n: 0 }) }));
+  const max = Math.max(1, ...rows.map(r => r.sec));
+  rows.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'srow' + (i === 0 ? ' now' : '');
+    const l = document.createElement('span'); l.className = 'l'; l.textContent = r.label;
+    const bar = document.createElement('span'); bar.className = 'bar';
+    const fill = document.createElement('i'); fill.style.width = (r.sec / max * 100) + '%'; bar.appendChild(fill);
+    const v = document.createElement('span'); v.className = 'v';
+    v.textContent = r.sec ? fmtDur(r.sec) : '—';
+    if (r.n) { const s = document.createElement('small'); s.textContent = r.n + '次'; v.appendChild(s); }
+    el.append(l, bar, v); box.appendChild(el);
   });
 }
-function fillEd() {
-  $('#eName').value = ed.name; $('#eFmt').value = ed.fmt; $('#eUrl').value = ed.url; $('#eKey').value = ed.key;
-  $('#eUrl').placeholder = PH[ed.fmt];
-  const M = $('#eModel'); M.textContent = '';
-  const list = ed.models.slice(); if (ed.model && !list.includes(ed.model)) list.unshift(ed.model);
-  if (!list.length) M.add(new Option('（先拉取模型）', ''));
-  list.forEach(m => M.add(new Option(m, m)));
-  M.value = ed.model || '';
-}
-function readEd() { ed.name = $('#eName').value.trim(); ed.fmt = $('#eFmt').value; ed.url = $('#eUrl').value.trim(); ed.key = $('#eKey').value.trim(); ed.model = $('#eModel').value; }
-function openEd(id) {
-  const a = id && apis.find(x => x.id === id);
-  ed = a ? { models: [], ...a } : { id: uid(), name: '', fmt: 'openai', url: '', key: '', model: '', models: [] };
-  $('#eDel').hidden = !a; $('#eMsg').textContent = ''; fillEd(); $('#ed').hidden = false;
-}
-$('#apiAdd').onclick = () => openEd(null);
-$('#eCancel').onclick = () => { $('#ed').hidden = true; };
-$('#eFmt').onchange = () => { readEd(); if (!ed.url) $('#eUrl').placeholder = PH[ed.fmt]; };
-$('#ePull').onclick = async () => {
-  readEd(); const msg = $('#eMsg');
-  if (!ed.url) ed.url = PH[ed.fmt];
-  if (!ed.key) { msg.textContent = '请先填写密钥'; return; }
-  msg.textContent = '拉取中…'; $('#ePull').disabled = true;
-  try {
-    ed.models = await fetchModels(ed);
-    if (!ed.models.includes(ed.model)) ed.model = ed.models[0] || '';
-    fillEd(); msg.textContent = `拉取到 ${ed.models.length} 个模型`;
-  } catch (e) { msg.textContent = '拉取失败：' + (e instanceof TypeError ? '网络错误或被跨域拦截（CORS）' : e.message); }
-  $('#ePull').disabled = false;
-};
-$('#eSave').onclick = () => {
-  readEd();
-  if (!ed.url) ed.url = PH[ed.fmt];
-  if (!ed.key) { $('#eMsg').textContent = '请填写密钥'; return; }
-  if (!ed.name) ed.name = 'API ' + (apis.length + 1);
-  const i = apis.findIndex(x => x.id === ed.id);
-  if (i >= 0) apis[i] = ed; else apis.push(ed);
-  if (!cfg.api) cfg.api = ed.id;
-  save(); $('#ed').hidden = true; drawApis(); drawTop();
-};
-$('#eDel').onclick = () => {
-  if (!confirm('删除这组 API？')) return;
-  apis = apis.filter(x => x.id !== ed.id);
-  if (cfg.api === ed.id) cfg.api = apis[0] ? apis[0].id : null;
-  save(); $('#ed').hidden = true; drawApis(); drawTop();
-};
 
-/* ===== 设置：对话与数据 ===== */
-$('#cStream').onchange = e => { cfg.stream = e.target.checked; save(); };
-$('#cLen').onchange = e => { const v = Math.floor(+e.target.value); cfg.len = v >= 0 ? v : 10; e.target.value = cfg.len; save(); };
-$('#cSys').onchange = e => { cfg.system = e.target.value; save(); };
-$('#btnExport').onclick = () => {
+/* ========== 渲染 ========== */
+function render() {
+  for (const v of ['timer', 'stats', 'settings']) $('#v-' + v).hidden = v !== view;
+  document.querySelectorAll('#nav .tab').forEach(b => { if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  const idle = !running;
+  $('#config').hidden = !idle;
+  $('#meta').textContent = running
+    ? (running.mode === 'down' ? `倒计时 ${fmtMin(running.target)}，完成后${running.after === 'next' ? '继续下一个' : '停止'}` : '正计时')
+    : '';
+  const bm = $('#btnMain');
+  bm.textContent = idle ? '开始' : '结束';
+  bm.classList.toggle('primary', idle);
+  document.querySelectorAll('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === settings.mode)));
+  document.querySelectorAll('#afterSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.after === settings.after)));
+  $('#downOpts').hidden = settings.mode !== 'down';
+  if (document.activeElement !== $('#minutes')) $('#minutes').value = +settings.minutes.toFixed(2);
+  document.querySelectorAll('#statSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === statKind)));
+  renderClock();
+  if (view === 'stats') renderStats();
+}
+function showView(v) {
+  view = v; render();
+  if (v === 'settings') populateSettings();
+}
+
+/* ========== 设置页 ========== */
+function populateSettings() {
+  $('#cutoff').value = `${pad(Math.floor(settings.cutoff / 60))}:${pad(settings.cutoff % 60)}`;
+  $('#flash').value = settings.flash;
+  $('#sound').checked = settings.sound;
+  $('#ghRepo').value = ls.rawGet(SHARED.repo) || '';
+  $('#ghToken').value = '';
+  $('#ghToken').placeholder = ls.rawGet(SHARED.token) ? '已保存（仅本设备），留空则不更改' : '粘贴 fine-grained token';
+  $('#fsSec').hidden = !FS_OK;
+  renderFileStatus(); renderGhStatus();
+}
+
+/* ========== 导出 / 导入 ========== */
+function exportJson() {
+  const blob = new Blob([serialize(records)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ version: 1, conversations: convs }, null, 1)], { type: 'application/json' }));
-  const d = new Date(); a.download = `chat-data-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  $('#dataMsg').textContent = `已导出 ${convs.length} 段对话（不含 API 密钥）`;
-};
-$('#btnImport').onclick = () => $('#fileImport').click();
-$('#fileImport').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  a.href = URL.createObjectURL(blob);
+  a.download = `focus-data-${fmtDate(new Date()).replace(/-/g, '')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  $('#statusData').textContent = `已导出 ${records.length} 条`;
+}
+async function importJson(file) {
+  const out = $('#statusData');
   try {
-    const j = JSON.parse(await f.text()), arr = Array.isArray(j) ? j : j.conversations;
-    if (!Array.isArray(arr)) throw new Error('找不到 conversations 数组');
-    let n = 0;
-    for (const c of arr) {
-      if (!c || typeof c.id !== 'string' || !Array.isArray(c.groups)) continue;
-      const i = convs.findIndex(x => x.id === c.id);
-      if (i < 0) { convs.push(c); n++; } else if ((c.at || 0) > (convs[i].at || 0)) { convs[i] = c; n++; }
+    const text = await file.text();
+    let j; try { j = JSON.parse(text); } catch { throw new Error('不是有效的 JSON'); }
+    const arr = Array.isArray(j) ? j : j && j.records;
+    if (!Array.isArray(arr)) throw new Error('找不到 records 数组');
+    const { list, dropped } = normalize(arr);
+    const before = records.length;
+    setRecords(mergeInto(records, list));
+    out.textContent = `导入 ${list.length} 条，新增 ${records.length - before} 条` + (dropped ? `，忽略无效 ${dropped} 条` : '');
+    render(); syncAll();
+  } catch (e) { out.textContent = '导入失败：' + e.message; }
+}
+
+/* ========== 存档文件（File System Access，仅 Edge/Chrome 桌面版） ========== */
+const FS_OK = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+let fsHandle = null, fileStatus = '';
+function idbOp(mode, fn) {
+  return new Promise((res, rej) => {
+    const q = indexedDB.open('focus_fs', 1);
+    q.onupgradeneeded = () => q.result.createObjectStore('h');
+    q.onerror = () => rej(q.error);
+    q.onsuccess = () => {
+      const tx = q.result.transaction('h', mode);
+      const rq = fn(tx.objectStore('h'));
+      tx.oncomplete = () => res(rq && rq.result);
+      tx.onerror = tx.onabort = () => rej(tx.error);
+    };
+  });
+}
+async function fsPerm(ask) {
+  if (!fsHandle) return false;
+  const o = { mode: 'readwrite' };
+  try {
+    if ((await fsHandle.queryPermission(o)) === 'granted') return true;
+    if (ask) return (await fsHandle.requestPermission(o)) === 'granted';
+  } catch {}
+  return false;
+}
+const showReconnect = on => { $('#reconnect').hidden = !on; };
+function renderFileStatus() {
+  $('#statusFile').textContent = fsHandle ? `${fsHandle.name}　${fileStatus}` : '未选择';
+  $('#fsDrop').hidden = !fsHandle;
+}
+async function fsChoose() {
+  try {
+    fsHandle = await window.showSaveFilePicker({ suggestedName: 'focus-data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+  } catch (e) { if (e.name !== 'AbortError') { fileStatus = '选择失败：' + e.message; renderFileStatus(); } return; }
+  try { await idbOp('readwrite', s => s.put(fsHandle, 'handle')); } catch {}
+  showReconnect(false);
+  await syncAll();
+}
+async function fsDrop() {
+  fsHandle = null; fileStatus = '';
+  try { await idbOp('readwrite', s => s.delete('handle')); } catch {}
+  showReconnect(false); renderFileStatus();
+}
+async function fileSync() {
+  if (!fsHandle) return;
+  if (!(await fsPerm(false))) { showReconnect(true); fileStatus = '需要重新连接'; return; }
+  try {
+    const text = await (await fsHandle.getFile()).text();
+    let remote;
+    try { remote = parseData(text); } catch (e) { throw new Error('存档文件无法解析，为避免覆盖已停止写入（' + e.message + '）'); }
+    const merged = mergeInto(records, remote);
+    setRecords(merged);
+    if (pushNeeded(remote, merged)) {
+      const w = await fsHandle.createWritable();
+      await w.write(serialize(merged)); await w.close();
     }
-    save(); drawTop(); draw(); $('#dataMsg').textContent = `导入完成，新增或更新 ${n} 段`;
-  } catch (er) { $('#dataMsg').textContent = '导入失败：' + er.message; }
+    fileStatus = '已同步 ' + hhmm(); showReconnect(false);
+  } catch (e) {
+    if (e.name === 'NotAllowedError') showReconnect(true);
+    fileStatus = '出错：' + (e.message || e.name);
+  }
+}
+
+/* ========== GitHub 同步（独立模块，令牌只存本机 localStorage） ========== */
+let ghStatus = '', lastFail = false;
+const ghCfg = () => {
+  const token = ls.rawGet(SHARED.token), repo = ls.rawGet(SHARED.repo);
+  return token && repo ? { token, repo } : null;
 };
-
-$('#cTool').onchange = e => { cfg.tool = e.target.checked; save(); };
-$('#cCtx').onchange = e => { cfg.ctx = e.target.checked; save(); };
-$('#cTier').onchange = e => { cfg.tier = e.target.value; save(); };
-
-/* ===== 同步到仓库（chat.json，按对话合并，删除用墓碑） ===== */
-const GHP = 'chat.json', DAYMS = 864e5;
-let syncing = false, syncMsg = '', syncT = null;
-const ghc = () => { try { const t = localStorage.getItem('gh_token'), r = localStorage.getItem('gh_repo'); return t && r ? { token: t, repo: r } : null; } catch { return null; } };
-const ghF = (g, url, o = {}) => fetch(url, { method: o.method || 'GET', cache: 'no-store', body: o.body, headers: { 'Authorization': 'Bearer ' + g.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(o.headers || {}) } });
-function ghErr(res) {
-  const e = new Error(); e.status = res.status;
-  e.message = res.status === 401 ? '令牌无效或已过期' : res.status === 403 ? (res.headers.get('x-ratelimit-remaining') === '0' ? '请求过于频繁，稍后再试' : '令牌权限不足（需要该仓库的 Contents 读写）') : res.status === 404 ? '找不到仓库，请检查仓库名与令牌授权范围' : 'GitHub 返回 ' + res.status;
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(b64.replace(/\s/g, ''));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+function ghFetch(cfg, url, opt = {}) {
+  return fetch(url, {
+    method: opt.method || 'GET',
+    cache: 'no-store',
+    body: opt.body,
+    headers: {
+      'Authorization': 'Bearer ' + cfg.token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opt.headers || {}),
+    },
+  });
+}
+function ghError(res) {
+  const e = new Error();
+  e.status = res.status;
+  if (res.status === 401) e.message = '令牌无效或已过期';
+  else if (res.status === 403) e.message = res.headers.get('x-ratelimit-remaining') === '0' ? '请求过于频繁，稍后再试' : '令牌权限不足（需要该仓库的 Contents 读写）';
+  else if (res.status === 404) e.message = '找不到仓库，请检查仓库名与令牌授权范围';
+  else e.message = 'GitHub 返回 ' + res.status;
   return e;
 }
-const b64e = str => { const b = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
-const b64d = x => new TextDecoder().decode(Uint8Array.from(atob(x.replace(/\s/g, '')), c => c.charCodeAt(0)));
-async function ghGet(g) {
-  const url = `https://api.github.com/repos/${g.repo}/contents/${GHP}`, res = await ghF(g, url);
-  if (res.status === 404) { const chk = await ghF(g, `https://api.github.com/repos/${g.repo}`); if (chk.ok) return { text: null, sha: null }; throw ghErr(chk); }
-  if (!res.ok) throw ghErr(res);
+async function ghGet(cfg) {
+  const url = `https://api.github.com/repos/${cfg.repo}/contents/${GH_PATH}`;
+  const res = await ghFetch(cfg, url);
+  if (res.status === 404) {                 // 区分“文件还没建”与“仓库不可访问”
+    const chk = await ghFetch(cfg, `https://api.github.com/repos/${cfg.repo}`);
+    if (chk.ok) return { text: null, sha: null };
+    throw ghError(chk);
+  }
+  if (!res.ok) throw ghError(res);
   const j = await res.json();
-  if (Array.isArray(j) || j.type !== 'file') throw new Error('仓库里的 chat.json 不是文件');
+  if (Array.isArray(j) || j.type !== 'file') throw new Error('仓库里的 data.json 不是文件');
   let text;
   if (j.size === 0) text = '';
-  else if (j.encoding === 'base64' && j.content) text = b64d(j.content);
-  else { const raw = await ghF(g, url, { headers: { 'Accept': 'application/vnd.github.raw+json' } }); if (!raw.ok) throw ghErr(raw); text = await raw.text(); }
+  else if (j.encoding === 'base64' && j.content) text = b64decode(j.content);
+  else {                                    // 大于 1MB 时 content 为空，改取原文
+    const raw = await ghFetch(cfg, url, { headers: { 'Accept': 'application/vnd.github.raw+json' } });
+    if (!raw.ok) throw ghError(raw);
+    text = await raw.text();
+  }
   return { text, sha: j.sha };
 }
-async function ghPut(g, text, sha) {
-  const body = { message: 'chat sync ' + new Date().toISOString(), content: b64e(text) }; if (sha) body.sha = sha;
-  const res = await ghF(g, `https://api.github.com/repos/${g.repo}/contents/${GHP}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-  if (res.status === 409 || res.status === 422) { const e = ghErr(res); e.conflict = true; throw e; }
-  if (!res.ok) throw ghErr(res);
+async function ghPut(cfg, text, sha) {
+  const body = { message: 'focus sync ' + new Date().toISOString(), content: b64encode(text) };
+  if (sha) body.sha = sha;
+  const res = await ghFetch(cfg, `https://api.github.com/repos/${cfg.repo}/contents/${GH_PATH}`, {
+    method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+  });
+  if (res.status === 409 || res.status === 422) { const e = ghError(res); e.conflict = true; throw e; }
+  if (!res.ok) throw ghError(res);
 }
-function parseRemote(text) {
-  if (!text || !text.trim()) return { c: [], t: {} };
-  let j; try { j = JSON.parse(text); } catch { throw new Error('远端 chat.json 无法解析，为避免覆盖已停止同步'); }
-  const arr = Array.isArray(j) ? j : j && j.conversations;
-  if (!Array.isArray(arr)) throw new Error('远端 chat.json 里找不到 conversations');
-  return { c: arr.filter(c => c && typeof c.id === 'string' && Array.isArray(c.groups)), t: (j && !Array.isArray(j) && j.deleted && typeof j.deleted === 'object') ? j.deleted : {} };
-}
-function mergeAll(rc, rt) {
-  const t = { ...tomb }; for (const k in rt) t[k] = Math.max(t[k] || 0, +rt[k] || 0);
-  for (const k in t) if (t[k] < Date.now() - 30 * DAYMS) delete t[k];
-  const m = new Map();
-  for (const c of [...convs, ...rc]) { const ex = m.get(c.id); if (!ex || (c.at || 0) > (ex.at || 0)) m.set(c.id, c); }
-  return { list: [...m.values()].filter(c => !(t[c.id] >= (c.at || 0))).sort((a, b) => (b.at || 0) - (a.at || 0)), t };
-}
-const serial = (list, t) => '{"version":1,"conversations":[\n' + list.map(c => JSON.stringify(c)).join(',\n') + '\n],"deleted":' + JSON.stringify(t) + '}\n';
-function schedSync() { if (!cfg.sync || !ghc()) return; clearTimeout(syncT); syncT = setTimeout(() => doSync(false), 4000); }
-const showSync = () => { $('#syncMsg').textContent = syncMsg; $('#syncNow').disabled = syncing; };
-async function doSync(manual) {
-  if (syncing) return;
-  const g = ghc();
-  if (!g) { if (manual) { syncMsg = '请先在番茄钟或清单页的设置里填写仓库和令牌'; showSync(); } return; }
-  if (busy) { schedSync(); return; }
-  syncing = true; syncMsg = '同步中…'; showSync();
+async function ghSync() {
+  const cfg = ghCfg();
+  if (!cfg) { ghStatus = ''; return; }
+  ghStatus = '同步中…'; renderGhStatus();
   try {
     for (let i = 0; i < 4; i++) {
-      const { text, sha } = await ghGet(g), rem = parseRemote(text), mg = mergeAll(rem.c, rem.t);
-      if (busy) { syncMsg = ''; schedSync(); return; }
-      convs = mg.list; tomb = mg.t;
-      if (!convs.some(c => c.id === cfg.cur)) cfg.cur = convs[0] ? convs[0].id : null;
-      ls.set('chat_convs', convs); ls.set('chat_tomb', tomb); ls.set('chat_cfg', cfg); drawTop(); draw();
-      const rm = new Map(rem.c.map(c => [c.id, c.at || 0])), ids = new Set(convs.map(c => c.id));
-      const need = convs.some(c => !rm.has(c.id) || rm.get(c.id) < (c.at || 0)) || rem.c.some(c => !ids.has(c.id)) || Object.keys(tomb).some(k => !(k in rem.t) || rem.t[k] < tomb[k]);
-      if (!need) { syncMsg = '已同步 ' + new Date().toTimeString().slice(0, 5); return; }
-      try { await ghPut(g, serial(convs, tomb), sha); syncMsg = '已同步 ' + new Date().toTimeString().slice(0, 5); return; }
-      catch (e) { if (e.conflict && i < 3) continue; throw e; }
+      const { text, sha } = await ghGet(cfg);
+      let remote;
+      try { remote = parseData(text); } catch { throw new Error('远端 data.json 无法解析，为避免覆盖已停止同步'); }
+      const merged = mergeInto(records, remote);
+      setRecords(merged);
+      if (!pushNeeded(remote, merged)) { ghStatus = '已同步 ' + hhmm(); lastFail = false; return; }
+      try { await ghPut(cfg, serialize(merged), sha); ghStatus = '已同步 ' + hhmm(); lastFail = false; return; }
+      catch (e) { if (e.conflict && i < 3) continue; throw e; }   // 冲突：重新读取、合并后重试
     }
-  } catch (e) { syncMsg = '同步失败：' + (e instanceof TypeError ? '网络不可用，本地数据未受影响' : e.conflict ? '写入冲突，重试多次仍失败' : e.message); }
-  finally { syncing = false; showSync(); }
+  } catch (e) {
+    lastFail = true;
+    ghStatus = e instanceof TypeError ? '网络不可用，联网后会自动重试' : (e.conflict ? '写入冲突，重试多次仍失败' : e.message || '同步失败');
+  }
 }
-$('#cSync').onchange = e => { cfg.sync = e.target.checked; save(); if (cfg.sync) doSync(true); };
-$('#syncNow').onclick = () => doSync(true);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cfg.sync) doSync(false); });
-window.addEventListener('online', () => { if (cfg.sync) doSync(false); });
-
-/* ===== 视图与事件 ===== */
-function setView(v) {
-  $('#vChat').hidden = v !== 'chat'; $('#vSet').hidden = v !== 'set'; $('#vRv').hidden = v !== 'rv'; $('#bar').hidden = v !== 'chat'; $('#lt').hidden = v !== 'chat';
-  document.querySelectorAll('.fn .tab').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
-  if (v === 'set') { $('#cStream').checked = cfg.stream; $('#cLen').value = cfg.len; $('#cSys').value = cfg.system; $('#cCtx').checked = cfg.ctx; $('#cTool').checked = cfg.tool; $('#cSync').checked = cfg.sync; $('#syncMsg').textContent = syncMsg; $('#cTier').value = cfg.tier; drawApis(); }
-}
-document.querySelectorAll('.fn .tab').forEach(b => b.onclick = () => setView(b.dataset.view));
-$('#tabChat').onclick = () => setView('chat');
-$('#newConv').onclick = () => {
-  if (busy || cur().groups.length === 0) return;
-  cfg.cur = null; cur(); drawTop(); draw();
+const renderGhStatus = () => {
+  const c = ghCfg(), ok = /^(已同步|同步中)/.test(ghStatus), b = $('#hdrSync');
+  $('#ghStatus').textContent = c ? ghStatus : '未配置';
+  b.textContent = !c ? '未设置同步' : ok ? ghStatus : ghStatus ? '同步失败' : '';
+  b.classList.toggle('err', !!c && !!ghStatus && !ok);
+  b.title = ghStatus; b.hidden = !b.textContent;
 };
-$('#send').onclick = send;
-$('#inp').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } };
-$('#inp').oninput = e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight + 2, innerHeight * 0.3) + 'px'; };
 
-if (!apis.some(a => a.id === cfg.api)) cfg.api = apis[0] ? apis[0].id : null;
-drawTop(); setView('chat'); draw(true);
-if (cfg.sync) doSync(false);
+/* ========== 同步调度 ========== */
+let syncing = false, syncAgain = false, lastSyncAt = 0;
+async function syncAll() {
+  if (syncing) { syncAgain = true; return; }
+  syncing = true;
+  try {
+    do { syncAgain = false; await fileSync(); await ghSync(); } while (syncAgain);
+  } finally {
+    syncing = false; lastSyncAt = Date.now(); renderGhStatus();
+    if (view === 'settings') { renderFileStatus(); renderGhStatus(); }
+    if (view === 'stats') renderStats();
+  }
+}
+
+/* ========== 事件 ========== */
+document.querySelectorAll('#nav .tab').forEach(b => b.onclick = () => showView(b.dataset.view));
+$('#tabTimer').onclick = () => showView('timer');
+$('#btnMain').onclick = () => running ? endSession() : startSession();
+$('#btnAlert').onclick = stopAlert;
+$('#modeSeg').onclick = e => { const b = e.target.closest('button'); if (!b || running) return; settings.mode = b.dataset.mode; saveSettings(); render(); };
+$('#afterSeg').onclick = e => { const b = e.target.closest('button'); if (!b || running) return; settings.after = b.dataset.after; saveSettings(); render(); };
+$('#statSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; statKind = b.dataset.k; render(); };
+$('#minutes').oninput = e => { const v = parseFloat(e.target.value); if (v >= 0.1 && v <= 1440) { settings.minutes = v; saveSettings(); renderClock(); } };
+$('#minutes').onchange = e => { const v = parseFloat(e.target.value); if (!(v >= 0.1)) e.target.value = +settings.minutes.toFixed(2); else { settings.minutes = Math.min(v, 1440); saveSettings(); } render(); };
+
+$('#cutoff').onchange = e => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(e.target.value);
+  settings.cutoff = m ? Math.min(1439, +m[1] * 60 + +m[2]) : 0;
+  saveSettings(); populateSettings();
+};
+$('#flash').onchange = e => { const v = parseFloat(e.target.value); settings.flash = v >= 0 ? v : 10; saveSettings(); populateSettings(); };
+$('#sound').onchange = e => { settings.sound = e.target.checked; saveSettings(); if (settings.sound) { unlockAudio(); beep(); } };
+$('#btnExport').onclick = exportJson;
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); };
+$('#fsChoose').onclick = fsChoose;
+$('#fsDrop').onclick = fsDrop;
+$('#reconnect').onclick = async () => { if (await fsPerm(true)) { showReconnect(false); syncAll(); } };
+
+$('#ghSave').onclick = () => {
+  const repo = $('#ghRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+  const token = $('#ghToken').value.trim();
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { ghStatus = '仓库格式应为 用户名/仓库名'; renderGhStatus(); $('#ghStatus').textContent = ghStatus; return; }
+  if (!token && !ls.rawGet(SHARED.token)) { $('#ghStatus').textContent = '请粘贴令牌'; return; }
+  ls.rawSet(SHARED.repo, repo);
+  if (token) ls.rawSet(SHARED.token, token);
+  $('#ghToken').value = ''; $('#ghToken').placeholder = '已保存（仅本设备），留空则不更改';
+  ghStatus = '同步中…'; renderGhStatus();
+  syncAll();
+};
+$('#hdrSync').onclick = () => { if (ghCfg()) syncAll(); else showView('settings'); };
+$('#ghNow').onclick = () => { if (!ghCfg()) { renderGhStatus(); return; } ghStatus = '同步中…'; renderGhStatus(); syncAll(); };
+$('#ghClear').onclick = () => {
+  try { localStorage.removeItem(SHARED.token); localStorage.removeItem(SHARED.repo); } catch {}
+  ghStatus = ''; lastFail = false; populateSettings();
+};
+
+document.addEventListener('pointerdown', unlockAudio);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (running) { acquireWake(); startTicker(); tick(); }
+  if (lastFail || Date.now() - lastSyncAt > 30000) syncAll();
+});
+window.addEventListener('online', () => syncAll());
+window.addEventListener('storage', e => {     // 同一浏览器的另一个标签页改了数据
+  if (!e.key || !e.key.startsWith(P)) return;
+  settings = loadSettings();
+  records = normalize(ls.get(K.records, [])).list;
+  running = ls.get(K.running, null);
+  if (!(running && Number.isFinite(running.start))) running = null;
+  running ? startTicker() : stopTicker();
+  render();
+});
+
+/* ========== 启动 ========== */
+(async function init() {
+  // 迁移：早先版本用过 shared_gh_* 键名
+  try {
+    for (const [o, n] of [['shared_gh_token', SHARED.token], ['shared_gh_repo', SHARED.repo]]) {
+      const v = localStorage.getItem(o);
+      if (v != null) { if (!localStorage.getItem(n)) localStorage.setItem(n, v); localStorage.removeItem(o); }
+    }
+  } catch {}
+  advance(Date.now());                 // 恢复进行中的计时（含页面关闭期间已到时的补记）
+  if (running) { startTicker(); acquireWake(); }
+  render(); renderGhStatus();
+  if (FS_OK) {
+    try { fsHandle = (await idbOp('readonly', s => s.get('handle'))) || null; } catch { fsHandle = null; }
+    if (fsHandle && !(await fsPerm(false))) { showReconnect(true); fileStatus = '需要重新连接'; }
+  }
+  syncAll();                           // 读取并合并存档文件与 GitHub，必要时写回
+})();
 })();
 </script>
 </body>
