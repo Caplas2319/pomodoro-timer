@@ -32,6 +32,8 @@ header{padding-top:6px;border-bottom:1px solid var(--line)}
 .fn .tab{font-size:14px;min-height:44px;padding:10px 6px}
 .fn .sp{flex:1}
 a.tab{text-decoration:none;display:inline-flex;align-items:center}
+#btnFs{border:0;background:none;color:var(--mute);width:48px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#btnFs svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #btnNew{border:0;background:none;color:var(--fg);font-size:28px;line-height:1;width:48px;height:48px;cursor:pointer}
 main{padding-top:8px;padding-bottom:64px}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -63,8 +65,8 @@ ul{list-style:none;margin:0;padding:0}
 .meta .late{color:var(--late)}
 .nt{color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-details.set{margin-top:28px;padding-top:8px;border-top:1px solid var(--line)}
-summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--mute);font-size:15px}
+.set{margin-top:20px}
+.set .st{min-height:44px;display:flex;align-items:center;color:var(--mute);font-size:15px}
 .hint{color:var(--mute);font-size:14px;margin:6px 0}
 .field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
 .field>span{color:var(--mute);font-size:14px}
@@ -145,6 +147,8 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
     <a class="tab" href="index.html">番茄钟</a>
     <button class="tab" id="tabList" aria-current="page">清单</button>
     <a class="tab" href="chat.html">对话</a>
+    <span style="flex:1"></span>
+    <button id="btnFs" aria-label="全屏" hidden></button>
   </div>
   <div class="fn">
     <button class="tab" data-view="list">清单</button>
@@ -166,6 +170,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
       <select id="sortA" aria-label="未完成排序">
         <option value="add">添加顺序</option>
         <option value="start">开始时间</option>
+        <option value="today">本日</option>
         <option value="due">截止时间</option>
       </select>
     </div>
@@ -190,6 +195,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
       <select id="sortB" aria-label="已完成排序">
         <option value="add">添加顺序</option>
         <option value="start">开始时间</option>
+        <option value="today">本日</option>
         <option value="due">截止时间</option>
         <option value="done">完成时间</option>
       </select>
@@ -229,8 +235,7 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
   <ul id="calList"></ul>
 </div>
 <div id="vSettings" hidden>
-  <details class="set" id="gh">
-    <summary>同步设置</summary>
+  <div class="set" id="gh">
     <p class="hint">数据存放在数据仓库根目录的 todo.json。仓库与令牌和番茄钟页面共用，填一次即可；令牌只保存在这台设备的浏览器里，只需授权该仓库的 Contents 读写。</p>
     <label class="field"><span>仓库</span><input id="ghRepo" type="text" placeholder="用户名/仓库名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label class="field"><span>令牌</span><input id="ghToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
@@ -238,12 +243,12 @@ summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var
       <button class="btn primary" id="ghSync">保存并同步</button>
       <button class="btn" id="ghClear">清除设置</button>
     </div>
-  </details>
-  <details class="set" id="cutSet">
-    <summary>日分界点</summary>
+  </div>
+  <div class="set" id="cutSet">
+    <div class="st">日分界点</div>
     <p class="hint">与番茄钟页共用同一个设置（仅本设备）。默认 00:00；设为 04:00 时，凌晨 4 点前算前一天。影响循环任务的“今天”、统计的日期归属和日历的“今天”。</p>
     <input id="cutoff" type="time" style="width:auto">
-  </details>
+  </div>
   <div class="row" style="margin-top:14px"><button class="btn primary" id="btnPush">同步到仓库</button></div>
   <p class="hint" id="syncStatus"></p>
 
@@ -397,8 +402,8 @@ const commit = () => { persist(); schedSync(); };      // 用户操作：保存�
 const setTasks = list => { tasks = list; persist(); };
 const byId = id => tasks.find(t => t.id === id);
 const ui = { sortA: 'add', sortB: 'done', ...ls.get(K.ui, {}) };
-if (!['add', 'start', 'due'].includes(ui.sortA)) ui.sortA = 'add';
-if (!['add', 'start', 'due', 'done'].includes(ui.sortB)) ui.sortB = 'done';
+if (!['add', 'start', 'today', 'due'].includes(ui.sortA)) ui.sortA = 'add';
+if (!['add', 'start', 'today', 'due', 'done'].includes(ui.sortB)) ui.sortB = 'done';
 
 /* ========== 任务操作（任何修改都刷新 updatedAt，立即保存） ========== */
 const newSeries = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -477,7 +482,18 @@ function rollRecurring(quiet) {
 }
 
 /* ========== 渲染 ========== */
+const dOnly = s => (s && /^\d{4}-\d{2}-\d{2}/.test(s)) ? s.slice(0, 10) : '';
 function sorted(list, mode) {
+  if (mode === 'today') {          // 已记录的时间段包含本日（按分界点算）的在前；没填时间的排在后面
+    const td = dkey(attrDate(Date.now()));
+    const timed = [], none = [];
+    for (const t of list) {
+      const a = dOnly(t.start), b = dOnly(t.due);
+      if (!a && !b) none.push(t);
+      else if ((!a || a <= td) && (!b || b >= td)) timed.push(t);
+    }
+    return [...sorted(timed, 'due'), ...sorted(none, 'add')];
+  }
   const big = Infinity;
   const key = t => mode === 'start' ? (parseLocal(t.start) ?? big) : mode === 'due' ? (parseLocal(t.due) ?? big) : mode === 'done' ? -(t.doneAt ?? -big) : 0;
   return list.slice().sort((a, b) => {
@@ -890,7 +906,7 @@ async function doSync(auto) {
     $('#ghToken').value = '';
   }
   const cfg = ghCfg();
-  if (!cfg) { if (!auto) { syncMsg = '请先填写仓库和令牌'; $('#gh').open = true; } renderSync(); return; }
+  if (!cfg) { if (!auto) { syncMsg = '请先填写仓库和令牌'; } renderSync(); return; }
   syncing = true; syncMsg = '同步中…'; renderSync(); fillGhFields();
   try {
     for (let i = 0; i < 4; i++) {
@@ -934,6 +950,20 @@ for (const id of ['#listA', '#listR1', '#listR2', '#listB', '#calList', '#rcList
   else openForm(li.dataset.id);
 };
 $('#btnNew').onclick = () => openForm(null);
+(() => {   // 全屏按钮：浏览器不支持全屏（如 iPhone）时保持隐藏
+  const b = $('#btnFs'), de = document.documentElement;
+  const req = de.requestFullscreen || de.webkitRequestFullscreen;
+  if (!req) return;
+  const exit = () => (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const IN = '<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  const OUT = '<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  const paint = () => { b.innerHTML = isFs() ? OUT : IN; b.setAttribute('aria-label', isFs() ? '退出全屏' : '全屏'); };
+  b.hidden = false; paint();
+  b.onclick = () => { try { isFs() ? exit() : req.call(de); } catch (e) {} };
+  document.addEventListener('fullscreenchange', paint);
+  document.addEventListener('webkitfullscreenchange', paint);
+})();
 $('#fCancel').onclick = closeForm;
 $('#fSave').onclick = saveForm;
 $('#fName').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); saveForm(); } };
@@ -951,7 +981,7 @@ $('#btnImport').onclick = () => $('#fileImport').click();
 $('#fileImport').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importJson(f); };
 $('#ghSync').onclick = () => doSync();
 $('#btnPush').onclick = () => doSync();
-$('#hdrSync').onclick = () => { if (ghCfg()) doSync(); else { setView('settings'); $('#gh').open = true; } };
+$('#hdrSync').onclick = () => { if (ghCfg()) doSync(); else { setView('settings'); } };
 window.addEventListener('online', () => doSync(true));
 $('#ghClear').onclick = () => { ls.rawDel(GH.token); ls.rawDel(GH.repo); syncMsg = ''; $('#ghToken').value = ''; fillGhFields(); renderSync(); };
 window.addEventListener('storage', e => {
